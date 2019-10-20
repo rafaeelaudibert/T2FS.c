@@ -1,0 +1,16 @@
+# Ignore object files, but allow support.o
+bin/*.o
+!bin/support.o
+
+# Ignore .exe or .out files
+bin/*.exe
+bin/*.out
+
+# Ignore .a files
+lib/*.a
+
+# Ignore vscode files
+.vscode/
+
+# Ignore log files
+*.log
