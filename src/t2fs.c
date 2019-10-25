@@ -92,24 +92,6 @@ int write2(FILE2 handle, char *buffer, int size)
 }
 
 /*-----------------------------------------------------------------------------
-Função:	Função usada para truncar um arquivo. Remove do arquivo 
-		todos os bytes a partir da posição atual do contador de posição
-		(current pointer), inclusive, até o seu final.
------------------------------------------------------------------------------*/
-int truncate2(FILE2 handle)
-{
-	return -9;
-}
-
-/*-----------------------------------------------------------------------------
-Função:	Altera o contador de posição (current pointer) do arquivo.
------------------------------------------------------------------------------*/
-int seek2(FILE2 handle, DWORD offset)
-{
-	return -9;
-}
-
-/*-----------------------------------------------------------------------------
 Função:	Função que abre um diretório existente no disco.
 -----------------------------------------------------------------------------*/
 DIR2 opendir2(char *pathname)
@@ -134,11 +116,17 @@ int closedir2(DIR2 handle)
 }
 
 /*-----------------------------------------------------------------------------
-Função:	Função usada para criar um caminho alternativo (softlink) com
-		o nome dado por linkname (relativo ou absoluto) para um 
-		arquivo ou diretório fornecido por filename.
+Função:	Função usada para criar um caminho alternativo (softlink)
 -----------------------------------------------------------------------------*/
-int ln2(char *linkname, char *filename)
+int sln2(char *linkname, char *filename)
+{
+	return -9;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função usada para criar um caminho alternativo (hardlink)
+-----------------------------------------------------------------------------*/
+int hln2(char *linkname, char *filename)
 {
 	return -9;
 }

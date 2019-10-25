@@ -73,7 +73,7 @@ int umount(void);
 Funï¿½ï¿½o: Criar um novo arquivo.
 	O nome desse novo arquivo ï¿½ aquele informado pelo parï¿½metro "filename".
 	O contador de posiï¿½ï¿½o do arquivo (current pointer) deve ser colocado na posiï¿½ï¿½o zero.
-	Caso jï¿½ exista um arquivo ou diretï¿½rio com o mesmo nome, a funï¿½ï¿½o deverï¿½ retornar um erro de criaï¿½ï¿½o.
+	Caso jï¿½ exista um arquivo com o mesmo nome, a funï¿½ï¿½o deverï¿½ retornar um erro de criaï¿½ï¿½o.
 	A funï¿½ï¿½o deve retornar o identificador (handle) do arquivo.
 	Esse handle serï¿½ usado em chamadas posteriores do sistema de arquivo para fins de manipulaï¿½ï¿½o do arquivo criado.
 
@@ -151,34 +151,6 @@ Saï¿½da:	Se a operaï¿½ï¿½o foi realizada com sucesso, a funï¿½ï¿½o retorna o nï¿
 int write2(FILE2 handle, char *buffer, int size);
 
 /*-----------------------------------------------------------------------------
-Funï¿½ï¿½o:	Funï¿½ï¿½o usada para truncar um arquivo.
-	Remove do arquivo todos os bytes a partir da posiï¿½ï¿½o atual do contador de posiï¿½ï¿½o (CP)
-	Todos os bytes a partir da posiï¿½ï¿½o CP (inclusive) serï¿½o removidos do arquivo.
-	Apï¿½s a operaï¿½ï¿½o, o arquivo deverï¿½ contar com CP bytes e o ponteiro estarï¿½ no final do arquivo
-
-Entra:	handle -> identificador do arquivo a ser truncado
-
-Saï¿½da:	Se a operaï¿½ï¿½o foi realizada com sucesso, a funï¿½ï¿½o retorna "0" (zero).
-	Em caso de erro, serï¿½ retornado um valor diferente de zero.
------------------------------------------------------------------------------*/
-int truncate2(FILE2 handle);
-
-/*-----------------------------------------------------------------------------
-Funï¿½ï¿½o:	Reposiciona o contador de posiï¿½ï¿½es (current pointer) do arquivo identificado por "handle".
-	A nova posiï¿½ï¿½o ï¿½ determinada pelo parï¿½metro "offset".
-	O parï¿½metro "offset" corresponde ao deslocamento, em bytes, contados a partir do inï¿½cio do arquivo.
-	Se o valor de "offset" for "-1", o current_pointer deverï¿½ ser posicionado no byte seguinte ao final do arquivo,
-		Isso ï¿½ ï¿½til para permitir que novos dados sejam adicionados no final de um arquivo jï¿½ existente.
-
-Entra:	handle -> identificador do arquivo a ser escrito
-	offset -> deslocamento, em bytes, onde posicionar o "current pointer".
-
-Saï¿½da:	Se a operaï¿½ï¿½o foi realizada com sucesso, a funï¿½ï¿½o retorna "0" (zero).
-		Em caso de erro, serï¿½ retornado um valor diferente de zero.
------------------------------------------------------------------------------*/
-int seek2(FILE2 handle, DWORD offset);
-
-/*-----------------------------------------------------------------------------
 Funï¿½ï¿½o:	Abre o diretï¿½rio raiz da partiï¿½ï¿½o ativa.
 		Se a operaï¿½ï¿½o foi realizada com sucesso, 
 		a funï¿½ï¿½o deve posicionar o ponteiro de entradas (current entry) na primeira posiï¿½ï¿½o vï¿½lida do diretï¿½rio.
@@ -194,10 +166,10 @@ int opendir2(void);
 Funï¿½ï¿½o:	Realiza a leitura das entradas do diretï¿½rio aberto
 		A cada chamada da funï¿½ï¿½o ï¿½ lida a entrada seguinte do diretï¿½rio
 		Algumas das informaï¿½ï¿½es dessas entradas devem ser colocadas no parï¿½metro "dentry".
-		Apï¿½s realizada a leitura de uma entrada, o ponteiro de entradas (current entry) deve ser ajustado para a prï¿½xima entrada vï¿½lida, seguinte ï¿½ ï¿½ltima lida.
+		Apï¿½s realizada a leitura de uma entrada, o ponteiro de entradas (current entry) serï¿½ ajustado para a  entrada vï¿½lida seguinte.
 		Sï¿½o considerados erros:
 			(a) qualquer situaï¿½ï¿½o que impeï¿½a a realizaï¿½ï¿½o da operaï¿½ï¿½o
-			(b) tï¿½rmino das entradas vï¿½lidas do diretï¿½rio identificado por "handle".
+			(b) tï¿½rmino das entradas vï¿½lidas do diretï¿½rio aberto.
 
 Entra:	dentry -> estrutura de dados onde a funï¿½ï¿½o coloca as informaï¿½ï¿½es da entrada lida.
 
@@ -217,7 +189,7 @@ Saï¿½da:	Se a operaï¿½ï¿½o foi realizada com sucesso, a funï¿½ï¿½o retorna "0" (
 int closedir2(void);
 
 /*-----------------------------------------------------------------------------
-Funï¿½ï¿½o:	Cria um link simbï¿½lico
+Funï¿½ï¿½o:	Cria um link simbï¿½lico (soft link)
 
 Entra:	linkname -> nome do link
 		filename -> nome do arquivo apontado pelo link
@@ -225,6 +197,17 @@ Entra:	linkname -> nome do link
 Saï¿½da:	Se a operaï¿½ï¿½o foi realizada com sucesso, a funï¿½ï¿½o retorna "0" (zero).
 	Em caso de erro, serï¿½ retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
-int ln2(char *linkname, char *filename);
+int sln2(char *linkname, char *filename);
+
+/*-----------------------------------------------------------------------------
+Funï¿½ï¿½o:	Cria um link estrito (hard link)
+
+Entra:	linkname -> nome do link
+		filename -> nome do arquivo apontado pelo link
+
+Saï¿½da:	Se a operaï¿½ï¿½o foi realizada com sucesso, a funï¿½ï¿½o retorna "0" (zero).
+	Em caso de erro, serï¿½ retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int hln2(char *linkname, char *filename);
 
 #endif
