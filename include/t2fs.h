@@ -5,20 +5,71 @@
 
 typedef int FILE2;
 
-typedef unsigned char BYTE;
-typedef unsigned short int WORD;
-typedef unsigned int DWORD;
+typedef unsigned char BYTE; // 1 byte
+typedef unsigned short int WORD; // 2 bytes
+typedef unsigned int DWORD; // 4 bytes
+
+typedef int FILE2;
+typedef int DIR2;
 
 #pragma pack(push, 1)
 
 /** Registro com as informa��es da entrada de diret�rio, lida com readdir2 */
-#define MAX_FILE_NAME_SIZE 255
+#define MAX_FILE_NAME_SIZE 255;
+#define MAX_PARTITION_NAME_SIZE 24;
+#define MAX_PARTITION_NUMBER 4;
+
+
 typedef struct
 {
 	char name[MAX_FILE_NAME_SIZE + 1]; /* Nome do arquivo cuja entrada foi lida do disco      */
 	BYTE fileType;					   /* Tipo do arquivo: regular (0x01) ou diret�rio (0x02) */
 	DWORD fileSize;					   /* Numero de bytes do arquivo                          */
 } DIRENT2;
+
+typedef struct
+{
+	char name[MAX_PARTITION_NAME_SIZE];
+	DWORD firstSector;
+	DWORD lastSector;
+} PARTITION;
+
+typedef struct
+{
+	WORD version;
+	WORD sectorSize;
+	WORD partitionsTableInit;
+	PARTITION partitions[MAX_PARTITION_NUMBER];
+}MBR;
+
+typedef struct
+{
+	char id[4];
+	WORD version;
+	WORD superBlockSize;
+	WORD freeBlocksBitmapSize;
+	WORD freeInodeBitmapSize;
+	WORD inodeAreaSize;
+	WORD blockSize;
+	DWORD dickSize;
+	DWORD checkSum;
+}SUPER_BLOCK;
+
+typedef struct
+{
+	DWORD	blocksFileSize;
+	DWORD	bytesFileSize;
+	DWORD	dataPtr[2];
+	DWORD	singleIndPtr;
+	DWORD	doubleIndPtr;
+	DWORD refCounter;
+	DWORD	reserved;
+}INODE;
+
+typedef struct
+{
+
+}DIRENTRY
 
 #pragma pack(pop)
 
@@ -152,7 +203,7 @@ int write2(FILE2 handle, char *buffer, int size);
 
 /*-----------------------------------------------------------------------------
 Fun��o:	Abre o diret�rio raiz da parti��o ativa.
-		Se a opera��o foi realizada com sucesso, 
+		Se a opera��o foi realizada com sucesso,
 		a fun��o deve posicionar o ponteiro de entradas (current entry) na primeira posi��o v�lida do diret�rio.
 
 Entra:	-

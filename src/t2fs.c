@@ -8,12 +8,13 @@ Função:	Informa a identificação dos desenvolvedores do T2FS.
 -----------------------------------------------------------------------------*/
 int identify2(char *name, int size)
 {
-	return -9;
+	strncpy(name, "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695", size);
+	return 0;
 }
 
 /*-----------------------------------------------------------------------------
 Função:	Formata logicamente uma partição do disco virtual t2fs_disk.dat para o sistema de
-		arquivos T2FS definido usando blocos de dados de tamanho 
+		arquivos T2FS definido usando blocos de dados de tamanho
 		corresponde a um múltiplo de setores dados por sectors_per_block.
 -----------------------------------------------------------------------------*/
 int format2(int partition, int sectors_per_block)
@@ -40,8 +41,8 @@ int unmount(void)
 /*-----------------------------------------------------------------------------
 Função:	Função usada para criar um novo arquivo no disco e abrí-lo,
 		sendo, nesse último aspecto, equivalente a função open2.
-		No entanto, diferentemente da open2, se filename referenciar um 
-		arquivo já existente, o mesmo terá seu conteúdo removido e 
+		No entanto, diferentemente da open2, se filename referenciar um
+		arquivo já existente, o mesmo terá seu conteúdo removido e
 		assumirá um tamanho de zero bytes.
 -----------------------------------------------------------------------------*/
 FILE2 create2(char *filename)
@@ -50,7 +51,7 @@ FILE2 create2(char *filename)
 }
 
 /*-----------------------------------------------------------------------------
-Função:	Função usada para remover (apagar) um arquivo do disco. 
+Função:	Função usada para remover (apagar) um arquivo do disco.
 -----------------------------------------------------------------------------*/
 int delete2(char *filename)
 {
@@ -94,7 +95,7 @@ int write2(FILE2 handle, char *buffer, int size)
 /*-----------------------------------------------------------------------------
 Função:	Função que abre um diretório existente no disco.
 -----------------------------------------------------------------------------*/
-DIR2 opendir2(char *pathname)
+int opendir2(void)
 {
 	return -9;
 }
@@ -102,7 +103,7 @@ DIR2 opendir2(char *pathname)
 /*-----------------------------------------------------------------------------
 Função:	Função usada para ler as entradas de um diretório.
 -----------------------------------------------------------------------------*/
-int readdir2(DIR2 handle, DIRENT2 *dentry)
+int readdir2(DIRENT2 *dentry)
 {
 	return -9;
 }
@@ -110,7 +111,7 @@ int readdir2(DIR2 handle, DIRENT2 *dentry)
 /*-----------------------------------------------------------------------------
 Função:	Função usada para fechar um diretório.
 -----------------------------------------------------------------------------*/
-int closedir2(DIR2 handle)
+int closedir2(void)
 {
 	return -9;
 }
