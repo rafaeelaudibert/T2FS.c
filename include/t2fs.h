@@ -40,36 +40,7 @@ typedef struct
 	WORD sectorSize;
 	WORD partitionsTableInit;
 	PARTITION partitions[MAX_PARTITION_NUMBER];
-}MBR;
-
-typedef struct
-{
-	char id[4];
-	WORD version;
-	WORD superBlockSize;
-	WORD freeBlocksBitmapSize;
-	WORD freeInodeBitmapSize;
-	WORD inodeAreaSize;
-	WORD blockSize;
-	DWORD dickSize;
-	DWORD checkSum;
-}SUPER_BLOCK;
-
-typedef struct
-{
-	DWORD	blocksFileSize;
-	DWORD	bytesFileSize;
-	DWORD	dataPtr[2];
-	DWORD	singleIndPtr;
-	DWORD	doubleIndPtr;
-	DWORD refCounter;
-	DWORD	reserved;
-}INODE;
-
-typedef struct
-{
-
-}DIRENTRY
+} MBR;
 
 #pragma pack(pop)
 
