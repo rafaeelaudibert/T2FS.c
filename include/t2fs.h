@@ -9,6 +9,9 @@ typedef unsigned char BYTE;
 typedef unsigned short int WORD;
 typedef unsigned int DWORD;
 
+typedef int FILE2;
+typedef int DIR2;
+
 #pragma pack(push, 1)
 
 /** Registro com as informa��es da entrada de diret�rio, lida com readdir2 */
@@ -152,7 +155,7 @@ int write2(FILE2 handle, char *buffer, int size);
 
 /*-----------------------------------------------------------------------------
 Fun��o:	Abre o diret�rio raiz da parti��o ativa.
-		Se a opera��o foi realizada com sucesso, 
+		Se a opera��o foi realizada com sucesso,
 		a fun��o deve posicionar o ponteiro de entradas (current entry) na primeira posi��o v�lida do diret�rio.
 
 Entra:	-
