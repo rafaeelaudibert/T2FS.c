@@ -212,5 +212,8 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int hln2(char *linkname, char *filename);
+int truncate2 (FILE2 handle);
+int seek2 (FILE2 handle, DWORD offset);
+
 
 #endif
