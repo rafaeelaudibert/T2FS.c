@@ -137,7 +137,7 @@ DWORD computeChecksum(SUPERBLOCK *superBlock)
 		value += *((DWORD *)(superBlock + i));
 	}
 
-	return !value;
+	return ~value;
 }
 
 /*-----------------------------------------------------------------------------
