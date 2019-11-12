@@ -498,6 +498,7 @@ void cmdFormat(void) {
 	int sectors_per_block;
 
     char *token = strtok(NULL," \t");
+
     if (token==NULL) {
         printf ("Missing block size (in sectors)\n");
         return;

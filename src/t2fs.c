@@ -2,13 +2,30 @@
 /**
 */
 #include "t2fs.h"
+#include "t2disk.h"
+#include "apidisk.h"
+
+#define MBR_SECTOR 0
+#define BOOL unsigned short int
+#define TRUE 1
+#define FALSE 0
+
+typedef struct t2fs_superbloco SuperBlock;
+typedef struct t2fs_record Record;
+typedef struct t2fs_inode Inode;
+
+SuperBlock superBlock;
+BOOL diskFormatted = FALSE;
+BOOL diskMounted = FALSE;
+BOOL debug = TRUE;
 
 /*-----------------------------------------------------------------------------
 Função:	Informa a identificação dos desenvolvedores do T2FS.
 -----------------------------------------------------------------------------*/
 int identify2(char *name, int size)
 {
-	strncpy(name, "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695", size);
+	// strncpy(name, "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695", size);
+	format2(0, 10);
 	return 0;
 }
 
@@ -19,7 +36,48 @@ Função:	Formata logicamente uma partição do disco virtual t2fs_disk.dat para
 -----------------------------------------------------------------------------*/
 int format2(int partition, int sectors_per_block)
 {
-	return -9;
+	if(diskFormatted)
+		return 0;
+
+	if(readSuperBlock() != 0){
+		printf("\tERROR: Failed reading SuperBlock.\n");
+		return 0;
+	}
+
+	return 0;
+}
+
+int readSuperBlock(){
+
+	unsigned char buffer[SECTOR_SIZE];
+
+	if(read_sector(MBR_SECTOR, buffer) != 0){
+		printf("\tERROR: Failed reading sector 0 (MBR).\n");
+		return -1;
+	}
+
+	strncpy(superBlock.id, (char*)buffer, 4);
+	superBlock.version = *( (DWORD*)(buffer + 4) );
+	superBlock.superblockSize = *( (WORD*)(buffer + 6) );
+	superBlock.freeBlocksBitmapSize = *( (WORD*)(buffer + 8) );
+	superBlock.freeInodeBitmapSize = *( (WORD*)(buffer + 10) );
+	superBlock.inodeAreaSize = *( (WORD*)(buffer + 12) );
+	superBlock.blockSize = *( (WORD*)(buffer + 14) );
+	superBlock.diskSize = *( (DWORD*)(buffer + 16) );
+	//falta o checksum
+
+	if(debug){
+		printf("Id: %s\n", superBlock.id);
+		printf("Version: %d\n", superBlock.version);
+		printf("SuperBlock Size (Blocks): %d\n", superBlock.superblockSize);
+		printf("freeBlocksBitmapSize (Blocks): %d\n", superBlock.freeBlocksBitmapSize);
+		printf("freeInodeBitmapSize (Blocks): %d\n", superBlock.freeInodeBitmapSize);
+		printf("inodeAreaSize (Blocks): %d\n", superBlock.inodeAreaSize);
+		printf("blockSize (Sectors): %d\n", superBlock.blockSize);
+		printf("diskSize (Blocks): %d\n", superBlock.diskSize);
+	}
+
+	return 0;
 }
 
 /*-----------------------------------------------------------------------------
