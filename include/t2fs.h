@@ -12,6 +12,9 @@ typedef unsigned int DWORD; // 4 bytes
 typedef int FILE2;
 typedef int DIR2;
 
+typedef int FILE2;
+typedef int DIR2;
+
 #pragma pack(push, 1)
 
 /** Registro com as informa��es da entrada de diret�rio, lida com readdir2 */
@@ -231,5 +234,8 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int hln2(char *linkname, char *filename);
+int truncate2 (FILE2 handle);
+int seek2 (FILE2 handle, DWORD offset);
+
 
 #endif
