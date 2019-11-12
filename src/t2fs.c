@@ -92,15 +92,11 @@ int formatPartition(int partition_number, int sectors_per_block) {
 	PARTITION partition = mbr.partitions[partition_number];
 	SUPERBLOCK superBlock;
 
-	//int sectorQuantity = partition.lastSector - partition.firstSector;
+	int sectorQuantity = partition.lastSector - partition.firstSector;
 
-	//blockSizeInBytes = sectors_per_block * SECTOR_SIZE
-	//blockQuantity = (sectorQuantity * SECTOR_SIZE) / blockSizeInBytes
-
-	//superBlock.freeInodeBitmapSize = blockQuantity/(blockSizeInBytes * 8)
-	//superBlock.freeBlocksBitmapSize = superBlock.freeInodeBitmapSize
-
-	//superBlock.inodeAreaSize = blockQuantity * 0.1
+	partitionSizeInBytes = sectorQuantity * SECTOR_SIZE;
+	blockSizeInBytes = sectors_per_block * SECTOR_SIZE;
+	blockQuantity = (partitionSizeInBytes) / blockSizeInBytes;
 
 	printf("asdfasdf");
 	printf("sectors per block %d\n", sectors_per_block);
@@ -110,9 +106,9 @@ int formatPartition(int partition_number, int sectors_per_block) {
 	strncpy(superBlock.id, "T2FS", 4);
 	superBlock.version = (WORD) 0x7E32;
 	superBlock.superblockSize = (WORD) 1;
-	superBlock.freeBlocksBitmapSize = (WORD) 0 /* Calcular */;
-	superBlock.freeInodeBitmapSize = (WORD) 0 /* Calcular */;
-	superBlock.inodeAreaSize = (WORD) 0 /* Calcular */;
+	superBlock.freeBlocksBitmapSize = (WORD) blockQuantity/(blockSizeInBytes * 8);
+	superBlock.freeInodeBitmapSize = (WORD) superBlock.freeBlocksBitmapSize;
+	superBlock.inodeAreaSize = (WORD) ceil(blockQuantity * 0.1);
 	superBlock.blockSize = (WORD) sectors_per_block;
 	superBlock.diskSize = (DWORD) sectorQuantity / sectors_per_block;
 	superBlock.Checksum = computeChecksum(&superBlock);
