@@ -54,7 +54,7 @@ all: $(BIN_DIR)/t2fs.o
 $(BIN_DIR)/t2fs.o: $(SRC_DIR)/t2fs.c
 	$(CC) -o $@ $< -I$(INC_DIR) $(CFLAGS)
 
-tar:
+tar: clean
 	@cd .. && tar -zcvf 274693.tar.gz t2fs
 
 clean:
