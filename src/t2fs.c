@@ -91,16 +91,21 @@ int buildMBR(){
 int formatPartition(int partition_number, int sectors_per_block) {
 	PARTITION partition = mbr.partitions[partition_number];
 	SUPERBLOCK superBlock;
+
 	//int sectorQuantity = partition.lastSector - partition.firstSector;
-	//quantblocosinodes = numero_inodes / 8 / 256
-	
-	//numero_bloos = ((sectorQuantity * SECTOR_SIZE) / sectorQuantity * sectors_per_block)
-	//
+
+	//blockSizeInBytes = sectors_per_block * SECTOR_SIZE
+	//blockQuantity = (sectorQuantity * SECTOR_SIZE) / blockSizeInBytes
+
+	//superBlock.freeInodeBitmapSize = blockQuantity/(blockSizeInBytes * 8)
+	//superBlock.freeBlocksBitmapSize = superBlock.freeInodeBitmapSize
+
+	//superBlock.inodeAreaSize = blockQuantity * 0.1
 
 	printf("asdfasdf");
 	printf("sectors per block %d\n", sectors_per_block);
 	printf("broco %d\n", (sectors_per_block * SECTOR_SIZE));
-	
+
 	// Preenche super block
 	strncpy(superBlock.id, "T2FS", 4);
 	superBlock.version = (WORD) 0x7E32;
@@ -129,7 +134,7 @@ int formatPartition(int partition_number, int sectors_per_block) {
 
 DWORD computeChecksum(SUPERBLOCK* superBlock) {
 	DWORD value = 0, i = 0;
-	
+
 	for (i = 0; i < 20; i += 4) {
 		value += *((DWORD*)(superBlock + i));
 	}
