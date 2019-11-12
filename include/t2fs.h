@@ -3,14 +3,14 @@
 #ifndef __LIBT2FS___
 #define __LIBT2FS___
 
-typedef int FILE2;
-
-typedef unsigned char BYTE; // 1 byte
-typedef unsigned short int WORD; // 2 bytes
-typedef unsigned int DWORD; // 4 bytes
+#define MAX_PARTITION_NAME_SIZE 24
+#define MAX_PARTITION_NUMBER 3
 
 typedef int FILE2;
-typedef int DIR2;
+
+typedef unsigned char BYTE;
+typedef unsigned short int WORD;
+typedef unsigned int DWORD;
 
 typedef int FILE2;
 typedef int DIR2;
@@ -18,11 +18,7 @@ typedef int DIR2;
 #pragma pack(push, 1)
 
 /** Registro com as informa��es da entrada de diret�rio, lida com readdir2 */
-#define MAX_FILE_NAME_SIZE 255;
-#define MAX_PARTITION_NAME_SIZE 24;
-#define MAX_PARTITION_NUMBER 4;
-
-
+#define MAX_FILE_NAME_SIZE 255
 typedef struct
 {
 	char name[MAX_FILE_NAME_SIZE + 1]; /* Nome do arquivo cuja entrada foi lida do disco      */
