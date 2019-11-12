@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "t2fs.h"
 #include "t2disk.h"
@@ -25,7 +26,7 @@ BOOL debug = TRUE;
 // "Private" functions
 int buildMBR();
 int formatPartition(int partition, int sectors_per_block);
-DWORD computeChecksum(SUPERBLOCK* superBlock);
+DWORD computeChecksum(SUPERBLOCK *superBlock);
 
 /*-----------------------------------------------------------------------------
 Função:	Informa a identificação dos desenvolvedores do T2FS.
@@ -43,17 +44,20 @@ Função:	Formata logicamente uma partição do disco virtual t2fs_disk.dat para
 -----------------------------------------------------------------------------*/
 int format2(int partition, int sectors_per_block)
 {
-	if(buildMBR() != 0){
+	if (buildMBR() != 0)
+	{
 		printf("\tERROR: Failed reading MBR.\n");
 		return -1;
 	}
 
-	if (partition >= (int)mbr.partitionQuantity) {
+	if (partition >= (int)mbr.partitionQuantity)
+	{
 		printf("\tERROR: There is no partition %d in disk.\n", partition);
 		return -1;
 	}
 
-	if (formatPartition(partition, sectors_per_block) != 0) {
+	if (formatPartition(partition, sectors_per_block) != 0)
+	{
 		printf("ERROR: Failed formating partition %d\t", partition);
 		return -1;
 	}
@@ -61,22 +65,26 @@ int format2(int partition, int sectors_per_block)
 	return 0;
 }
 
-int buildMBR(){
+int buildMBR()
+{
 
 	int i = 0;
 
-	if(read_sector(MBR_SECTOR, (BYTE*)&mbr) != 0){
+	if (read_sector(MBR_SECTOR, (BYTE *)&mbr) != 0)
+	{
 		printf("\tERROR: Failed reading sector 0 (MBR).\n");
 		return -1;
 	}
 
-	if(debug){
+	if (debug)
+	{
 		printf("MBR Version: %d\n", (int)mbr.version);
 		printf("MBR sectorSize: %d\n", (int)mbr.sectorSize);
 		printf("MBR PartitionTableByteInit: %d\n", (int)mbr.partitionsTableByteInit);
 		printf("MBR partitionQuantity: %d\n", (int)mbr.partitionQuantity);
 
-		for(i = 0; i < MAX_PARTITION_NUMBER; i++){
+		for (i = 0; i < MAX_PARTITION_NUMBER; i++)
+		{
 			printf("PARTITION %d ---- %s\n", i, mbr.partitions[i].name);
 			printf("First Sector %d\n", mbr.partitions[i].firstSector);
 			printf("Last Sector %d\n", mbr.partitions[i].lastSector);
@@ -88,19 +96,33 @@ int buildMBR(){
 	return 0;
 }
 
-int formatPartition(int partition_number, int sectors_per_block) {
+int formatPartition(int partition_number, int sectors_per_block)
+{
 	PARTITION partition = mbr.partitions[partition_number];
 	SUPERBLOCK superBlock;
+	BYTE *buffer = (BYTE *)malloc(sizeof(BYTE) * SECTOR_SIZE);
 
-	int sectorQuantity = partition.lastSector - partition.firstSector;
+	// Calcula variáveis auxiliares
+	DWORD sectorQuantity = partition.lastSector - partition.firstSector;
+	DWORD partitionSizeInBytes = sectorQuantity * SECTOR_SIZE;
+	DWORD blockSizeInBytes = sectors_per_block * SECTOR_SIZE;
+	DWORD blockQuantity = partitionSizeInBytes / blockSizeInBytes;
 
-	partitionSizeInBytes = sectorQuantity * SECTOR_SIZE;
-	blockSizeInBytes = sectors_per_block * SECTOR_SIZE;
-	blockQuantity = (partitionSizeInBytes) / blockSizeInBytes;
+	printf("sectorQuantity: %u\n", sectorQuantity);
+	printf("partitionSizeInBytes: %u\n", partitionSizeInBytes);
+	printf("blockSizeInBytes: %u\n", blockSizeInBytes);
+	printf("blockQuantity: %u\n", blockQuantity);
 
-	printf("asdfasdf");
-	printf("sectors per block %d\n", sectors_per_block);
-	printf("broco %d\n", (sectors_per_block * SECTOR_SIZE));
+	// Zero all the sectors
+	/*BYTE *zeroed_buffer = (BYTE *)calloc(0, sizeof(BYTE) * SECTOR_SIZE);
+	for (DWORD sectorIdx = partition.firstSector; sectorIdx <= partition.lastSector; ++sectorIdx)
+	{
+		if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
+		{
+			printf("\tERROR: Failed writing sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
+			return -1;
+		}
+	}*/
 
 	// Preenche super block
 	strncpy(superBlock.id, "T2FS", 4);
@@ -113,17 +135,30 @@ int formatPartition(int partition_number, int sectors_per_block) {
 	superBlock.diskSize = (DWORD)sectorQuantity / sectors_per_block;
 	superBlock.Checksum = computeChecksum(&superBlock);
 
-	BYTE *buffer = (BYTE *)calloc(0, sizeof(BYTE) * superBlock.blockSize * SECTOR_SIZE);
-	memcpy(buffer, (BYTE*)&superBlock, sizeof(superBlock));
+	printf("freeBlocksBitmapSize: %hd\n", superBlock.freeBlocksBitmapSize);
+	printf("freeInodeBitmapSize: %hd\n", superBlock.freeInodeBitmapSize);
+	printf("inodeAreaSize: %hd\n", superBlock.inodeAreaSize);
+	printf("blockSize: %hd\n", superBlock.blockSize);
+	printf("diskSize: %u\n", superBlock.diskSize);
+	printf("Checksum: %u\n", superBlock.Checksum);
 
-	printf("size -> %d\n", sizeof(BYTE) * superBlock.blockSize);
-	printf("%.*s", sizeof(BYTE) * superBlock.blockSize, buffer);
+	// Fill buffer
+	memset(buffer, 0, sizeof(BYTE) * SECTOR_SIZE);
+	memcpy(buffer, (BYTE *)(&superBlock), sizeof(superBlock));
 
-	// Só irá funcionar quando blockSize estiver calculado
-	if(write_sector(partition.firstSector, (BYTE*)buffer) != 0){
+	// Escreve superBlock no disco
+	if (write_sector(partition.firstSector, (BYTE *)buffer) != 0)
+	{
 		printf("\tERROR: Failed writing superBlock for partition %d.\n", partition_number);
 		return -1;
 	}
+
+	// Criar/limpar bitmap dos blocos
+
+	// Criar/limpar bitmap dos inodes
+
+	// Lembrar de liberar memória utilizada pelo buffer
+	free(buffer);
 
 	return 0;
 }
