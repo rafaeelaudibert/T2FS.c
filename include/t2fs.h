@@ -3,11 +3,17 @@
 #ifndef __LIBT2FS___
 #define __LIBT2FS___
 
+#define MAX_PARTITION_NAME_SIZE 24
+#define MAX_PARTITION_NUMBER 3
+
 typedef int FILE2;
 
 typedef unsigned char BYTE;
 typedef unsigned short int WORD;
 typedef unsigned int DWORD;
+
+typedef int FILE2;
+typedef int DIR2;
 
 #pragma pack(push, 1)
 
@@ -19,6 +25,21 @@ typedef struct
 	BYTE fileType;					   /* Tipo do arquivo: regular (0x01) ou diret�rio (0x02) */
 	DWORD fileSize;					   /* Numero de bytes do arquivo                          */
 } DIRENT2;
+
+typedef struct
+{
+	char name[MAX_PARTITION_NAME_SIZE];
+	DWORD firstSector;
+	DWORD lastSector;
+} PARTITION;
+
+typedef struct
+{
+	WORD version;
+	WORD sectorSize;
+	WORD partitionsTableInit;
+	PARTITION partitions[MAX_PARTITION_NUMBER];
+} MBR;
 
 #pragma pack(pop)
 
@@ -152,7 +173,7 @@ int write2(FILE2 handle, char *buffer, int size);
 
 /*-----------------------------------------------------------------------------
 Fun��o:	Abre o diret�rio raiz da parti��o ativa.
-		Se a opera��o foi realizada com sucesso, 
+		Se a opera��o foi realizada com sucesso,
 		a fun��o deve posicionar o ponteiro de entradas (current entry) na primeira posi��o v�lida do diret�rio.
 
 Entra:	-
@@ -209,5 +230,8 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int hln2(char *linkname, char *filename);
+int truncate2 (FILE2 handle);
+int seek2 (FILE2 handle, DWORD offset);
+
 
 #endif
