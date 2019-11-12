@@ -38,8 +38,8 @@ void cmdFscp(void);
 void cmdGetCW(void);
 void cmdChangeCW(void);
 
-
 void cmdExit(void);
+
 
 static void dump(char *buffer, int size) {
     int base, i;
@@ -92,6 +92,7 @@ char helpChangeCW[] = "[pathname]   -> change to [pathname]";
 char helpGetCW[] = "             -> shows Current Path";
 
 
+
 struct {
 	char name[20];
 	char *helpString;
@@ -113,7 +114,7 @@ struct {
 
 	{ "ln", helpLn, cmdLn },
 	{ "format", helpFormat, cmdFormat },
-
+    
 	{ "cp", helpCopy, cmdCp },
 	{ "fscp", helpFscp, cmdFscp },
 	{ "fim", helpExit, NULL }
@@ -455,6 +456,7 @@ int main()
     }
     return 0;
 }
+
 
 /**
 Encerra a operação do teste

@@ -4,7 +4,7 @@
 #define __LIBT2FS___
 
 #define MAX_PARTITION_NAME_SIZE 24
-#define MAX_PARTITION_NUMBER 3
+#define MAX_PARTITION_NUMBER 4
 
 typedef int FILE2;
 
@@ -28,17 +28,20 @@ typedef struct
 
 typedef struct
 {
-	char name[MAX_PARTITION_NAME_SIZE];
 	DWORD firstSector;
 	DWORD lastSector;
+	char name[MAX_PARTITION_NAME_SIZE];
 } PARTITION;
 
 typedef struct
 {
 	WORD version;
 	WORD sectorSize;
-	WORD partitionsTableInit;
+	WORD partitionsTableByteInit;
+	WORD partitionQuantity;
 	PARTITION partitions[MAX_PARTITION_NUMBER];
+	char padding[120];
+	
 } MBR;
 
 #pragma pack(pop)
