@@ -7,7 +7,7 @@
 
 typedef int boolean;
 #define false 0
-#define true(!false)
+#define true (!false)
 typedef unsigned char BYTE;
 typedef unsigned short int WORD;
 typedef unsigned int DWORD;
