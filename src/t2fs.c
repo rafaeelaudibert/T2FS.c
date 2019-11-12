@@ -99,66 +99,96 @@ int buildMBR()
 int formatPartition(int partition_number, int sectors_per_block)
 {
 	PARTITION partition = mbr.partitions[partition_number];
-	SUPERBLOCK superBlock;
+	SUPERBLOCK sb;
 	BYTE *buffer = (BYTE *)malloc(sizeof(BYTE) * SECTOR_SIZE);
+	BYTE *zeroed_buffer = (BYTE *)calloc(0, sizeof(BYTE) * SECTOR_SIZE);
 
 	// Calcula variáveis auxiliares
-	DWORD sectorQuantity = partition.lastSector - partition.firstSector;
+	DWORD sectorQuantity = partition.lastSector - partition.firstSector + 1;
 	DWORD partitionSizeInBytes = sectorQuantity * SECTOR_SIZE;
 	DWORD blockSizeInBytes = sectors_per_block * SECTOR_SIZE;
 	DWORD blockQuantity = partitionSizeInBytes / blockSizeInBytes;
+	DWORD inodeOccupiedBlocks = ceil(blockQuantity * 0.1);
+	DWORD inodeOccupiedBytes = (inodeOccupiedBlocks * sectors_per_block * SECTOR_SIZE);
+	DWORD inodeQuantity = ceil(inodeOccupiedBytes / 32.0);
+	DWORD inodeBitmapSizeInBlocks = ceil(inodeQuantity / (8.0 * blockSizeInBytes));
 
 	printf("sectorQuantity: %u\n", sectorQuantity);
 	printf("partitionSizeInBytes: %u\n", partitionSizeInBytes);
 	printf("blockSizeInBytes: %u\n", blockSizeInBytes);
 	printf("blockQuantity: %u\n", blockQuantity);
+	printf("inodeOccupiedBlocks: %u\n", inodeOccupiedBlocks);
+	printf("inodeOccupiedBytes: %u\n", inodeOccupiedBytes);
+	printf("inodeQuantity: %u\n", inodeQuantity);
+	printf("inodeBitmapSizeInBlocks: %u\n", inodeBitmapSizeInBlocks);
 
-	// Zero all the sectors
-	/*BYTE *zeroed_buffer = (BYTE *)calloc(0, sizeof(BYTE) * SECTOR_SIZE);
-	for (DWORD sectorIdx = partition.firstSector; sectorIdx <= partition.lastSector; ++sectorIdx)
+	// Preenche super block
+	strncpy(sb.id, "T2FS", 4);
+	sb.version = (WORD)0x7E32;
+	sb.superblockSize = (WORD)1;
+	sb.freeBlocksBitmapSize = (WORD)inodeBitmapSizeInBlocks;
+	sb.freeInodeBitmapSize = (WORD)inodeBitmapSizeInBlocks;
+	sb.inodeAreaSize = (WORD)inodeOccupiedBlocks;
+	sb.blockSize = (WORD)sectors_per_block;
+	sb.diskSize = (DWORD)sectorQuantity / sectors_per_block;
+	sb.Checksum = computeChecksum(&sb);
+
+	printf("freeBlocksBitmapSize: %hd\n", sb.freeBlocksBitmapSize);
+	printf("freeInodeBitmapSize: %hd\n", sb.freeInodeBitmapSize);
+	printf("inodeAreaSize: %hd\n", sb.inodeAreaSize);
+	printf("blockSize: %hd\n", sb.blockSize);
+	printf("diskSize: %u\n", sb.diskSize);
+	printf("Checksum: %u\n", sb.Checksum);
+
+	// Fill buffer with superBlock
+	memset(buffer, 0, sizeof(BYTE) * SECTOR_SIZE);
+	memcpy(buffer, (BYTE *)(&sb), sizeof(sb));
+
+	// Escreve superBlock no disco (os dados de verdade ocupam apenas o primeiro setor, os outros são zerados)
+	if (write_sector(partition.firstSector, (BYTE *)buffer) != 0)
+	{
+		printf("\tERROR: Failed writing main superBlock sector for partition %d.\n", partition_number);
+		return -1;
+	}
+	for (DWORD sectorIdx = partition.firstSector + 1; sectorIdx < partition.firstSector + sb.blockSize; ++sectorIdx)
 	{
 		if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
 		{
-			printf("\tERROR: Failed writing sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
+			printf("\tERROR: Failed writing zeroed superBlock sector %d for partition %d.\n", sectorIdx, partition_number);
 			return -1;
 		}
-	}*/
-
-	// Preenche super block
-	strncpy(superBlock.id, "T2FS", 4);
-	superBlock.version = (WORD)0x7E32;
-	superBlock.superblockSize = (WORD)1;
-	superBlock.freeBlocksBitmapSize = (WORD)blockQuantity / (blockSizeInBytes * 8);
-	superBlock.freeInodeBitmapSize = (WORD)superBlock.freeBlocksBitmapSize;
-	superBlock.inodeAreaSize = (WORD)ceil(blockQuantity * 0.1);
-	superBlock.blockSize = (WORD)sectors_per_block;
-	superBlock.diskSize = (DWORD)sectorQuantity / sectors_per_block;
-	superBlock.Checksum = computeChecksum(&superBlock);
-
-	printf("freeBlocksBitmapSize: %hd\n", superBlock.freeBlocksBitmapSize);
-	printf("freeInodeBitmapSize: %hd\n", superBlock.freeInodeBitmapSize);
-	printf("inodeAreaSize: %hd\n", superBlock.inodeAreaSize);
-	printf("blockSize: %hd\n", superBlock.blockSize);
-	printf("diskSize: %u\n", superBlock.diskSize);
-	printf("Checksum: %u\n", superBlock.Checksum);
-
-	// Fill buffer
-	memset(buffer, 0, sizeof(BYTE) * SECTOR_SIZE);
-	memcpy(buffer, (BYTE *)(&superBlock), sizeof(superBlock));
-
-	// Escreve superBlock no disco
-	if (write_sector(partition.firstSector, (BYTE *)buffer) != 0)
-	{
-		printf("\tERROR: Failed writing superBlock for partition %d.\n", partition_number);
-		return -1;
+		printf("Formatted zeroed superBlock sector %d for partition %d.\n", sectorIdx, partition_number);
 	}
 
-	// Criar/limpar bitmap dos blocos
+	// Criar/limpar bitmap dos blocos com o zeroed_buffer
+	DWORD first_bbitmap = partition.firstSector + sb.superblockSize * sb.blockSize;
+	DWORD last_bbitmap = first_bbitmap + sb.freeBlocksBitmapSize * sb.blockSize;
+	for (DWORD sectorIdx = first_bbitmap; sectorIdx < last_bbitmap; ++sectorIdx)
+	{
+		if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
+		{
+			printf("\tERROR: Failed writing block bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
+			return -1;
+		}
+		printf("Formatted free block bitmap sector %d\n", sectorIdx);
+	}
 
 	// Criar/limpar bitmap dos inodes
+	DWORD first_ibitmap = last_bbitmap;
+	DWORD last_ibitmap = first_ibitmap + sb.freeInodeBitmapSize * sb.blockSize;
+	for (DWORD sectorIdx = first_ibitmap; sectorIdx < last_ibitmap; ++sectorIdx)
+	{
+		if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
+		{
+			printf("\tERROR: Failed writing inode bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
+			return -1;
+		}
+		printf("Formatted free inode bitmap sector %d\n", sectorIdx);
+	}
 
-	// Lembrar de liberar memória utilizada pelo buffer
+	// Lembrar de liberar memória utilizada pelos buffers
 	free(buffer);
+	free(zeroed_buffer);
 
 	return 0;
 }
