@@ -104,13 +104,13 @@ int formatPartition(int partition_number, int sectors_per_block) {
 
 	// Preenche super block
 	strncpy(superBlock.id, "T2FS", 4);
-	superBlock.version = (WORD) 0x7E32;
-	superBlock.superblockSize = (WORD) 1;
-	superBlock.freeBlocksBitmapSize = (WORD) blockQuantity/(blockSizeInBytes * 8);
-	superBlock.freeInodeBitmapSize = (WORD) superBlock.freeBlocksBitmapSize;
-	superBlock.inodeAreaSize = (WORD) ceil(blockQuantity * 0.1);
-	superBlock.blockSize = (WORD) sectors_per_block;
-	superBlock.diskSize = (DWORD) sectorQuantity / sectors_per_block;
+	superBlock.version = (WORD)0x7E32;
+	superBlock.superblockSize = (WORD)1;
+	superBlock.freeBlocksBitmapSize = (WORD)blockQuantity / (blockSizeInBytes * 8);
+	superBlock.freeInodeBitmapSize = (WORD)superBlock.freeBlocksBitmapSize;
+	superBlock.inodeAreaSize = (WORD)ceil(blockQuantity * 0.1);
+	superBlock.blockSize = (WORD)sectors_per_block;
+	superBlock.diskSize = (DWORD)sectorQuantity / sectors_per_block;
 	superBlock.Checksum = computeChecksum(&superBlock);
 
 	BYTE *buffer = (BYTE *)calloc(0, sizeof(BYTE) * superBlock.blockSize * SECTOR_SIZE);
@@ -128,11 +128,13 @@ int formatPartition(int partition_number, int sectors_per_block) {
 	return 0;
 }
 
-DWORD computeChecksum(SUPERBLOCK* superBlock) {
+DWORD computeChecksum(SUPERBLOCK *superBlock)
+{
 	DWORD value = 0, i = 0;
 
-	for (i = 0; i < 20; i += 4) {
-		value += *((DWORD*)(superBlock + i));
+	for (i = 0; i < 20; i += 4)
+	{
+		value += *((DWORD *)(superBlock + i));
 	}
 
 	return !value;
