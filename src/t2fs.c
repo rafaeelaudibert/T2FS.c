@@ -1,6 +1,3 @@
-
-/**
-*/
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +6,7 @@
 #include "t2fs.h"
 #include "t2disk.h"
 #include "apidisk.h"
+#include "bitmap2.h"
 
 #define MBR_SECTOR 0
 #define BOOL unsigned short int
@@ -20,22 +18,35 @@ typedef struct t2fs_record RECORD;
 typedef struct t2fs_inode I_NODE;
 
 // Global variables
-MBR mbr;
-int mounted_partition = 0;
+MBR *mbr = NULL;
+SUPERBLOCK *superblock = NULL;
+int mounted_partition = -1;
+BOOL rootOpened = FALSE;
+
+// "Private" functions
+void initialize();
+int readMBR();
+int formatPartition(int, int);
+int createRootFolder(int);
+DWORD computeChecksum(SUPERBLOCK *);
+DWORD getBlockBitmapFirstSector(PARTITION *, SUPERBLOCK *);
+DWORD getBlockBitmapLastSector(PARTITION *, SUPERBLOCK *);
+DWORD getInodeBitmapFirstSector(PARTITION *, SUPERBLOCK *);
+DWORD getInodeBitmapLastSector(PARTITION *, SUPERBLOCK *);
+BOOL notMountedPartition();
+BOOL notRootOpened();
 
 // Debug variables
 BOOL debug = TRUE;
-
-// "Private" functions
-int buildMBR();
-int formatPartition(int partition, int sectors_per_block);
-DWORD computeChecksum(SUPERBLOCK *superBlock);
 
 /*-----------------------------------------------------------------------------
 Função:	Informa a identificação dos desenvolvedores do T2FS.
 -----------------------------------------------------------------------------*/
 int identify2(char *name, int size)
 {
+	if (mbr == NULL)
+		readMBR();
+
 	strncpy(name, "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695", size);
 	return 0;
 }
@@ -47,13 +58,15 @@ Função:	Formata logicamente uma partição do disco virtual t2fs_disk.dat para
 -----------------------------------------------------------------------------*/
 int format2(int partition, int sectors_per_block)
 {
-	if (buildMBR() != 0)
+	initialize();
+
+	if (readMBR() != 0)
 	{
 		printf("ERROR: Failed reading MBR.\n");
 		return -1;
 	}
 
-	if (partition >= (int)mbr.partitionQuantity)
+	if (partition >= (int)mbr->partitionQuantity)
 	{
 		printf("ERROR: There is no partition %d in disk.\n", partition);
 		return -1;
@@ -65,15 +78,270 @@ int format2(int partition, int sectors_per_block)
 		return -1;
 	}
 
+	if (createRootFolder(partition) != 0)
+	{
+		printf("ERROR: Failed while creating root folder on partition %d\n", partition);
+		return -1;
+	}
+
 	return 0;
 }
 
-int buildMBR()
+/*-----------------------------------------------------------------------------
+Função:	Monta a partição indicada por "partition" no diretório raiz
+-----------------------------------------------------------------------------*/
+int mount(int partition)
+{
+	if (superblock != NULL)
+	{
+		printf("ERROR: There is already a mounted partition. Please unmount it first.\n");
+		return -1;
+	}
+
+	// Read superblock
+	BYTE *buffer = (BYTE *)malloc(sizeof(BYTE) * SECTOR_SIZE);
+	if (read_sector(mbr->partitions[partition].firstSector, (BYTE *)buffer) != 0)
+	{
+		printf("ERROR: Failed reading superblock 0 (MBR).\n");
+		return -1;
+	}
+
+	superblock = (SUPERBLOCK *)malloc(sizeof(SUPERBLOCK));
+	memcpy(superblock, buffer, sizeof(superblock));
+
+	// Mark mounted partition
+	mounted_partition = partition;
+
+	// Remember to clean up buffer allocated memory
+	free(buffer);
+
+	printf("Mounted partition %d successfuly.\n", partition);
+
+	return 0;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Desmonta a partição atualmente montada, liberando o ponto de montagem.
+-----------------------------------------------------------------------------*/
+int unmount(void)
+{
+	initialize();
+
+	// Free dynamically allocated superblock memory and point it to null
+	free(superblock);
+	superblock = NULL;
+
+	// Unmark mounted partition
+	mounted_partition = -1;
+
+	printf("Unmounted successfully.\n");
+
+	return 0;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função usada para criar um novo arquivo no disco e abrí-lo,
+		sendo, nesse último aspecto, equivalente a função open2.
+		No entanto, diferentemente da open2, se filename referenciar um
+		arquivo já existente, o mesmo terá seu conteúdo removido e
+		assumirá um tamanho de zero bytes.
+-----------------------------------------------------------------------------*/
+FILE2 create2(char *filename)
+{
+	initialize();
+	if (notMountedPartition())
+		return -1;
+	if (notRootOpened())
+		return -1;
+
+	return -9;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função usada para remover (apagar) um arquivo do disco.
+-----------------------------------------------------------------------------*/
+int delete2(char *filename)
+{
+	initialize();
+	if (notMountedPartition())
+		return -1;
+	if (notRootOpened())
+		return -1;
+
+	return -9;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função que abre um arquivo existente no disco.
+-----------------------------------------------------------------------------*/
+FILE2 open2(char *filename)
+{
+	initialize();
+	if (notMountedPartition())
+		return -1;
+	if (notRootOpened())
+		return -1;
+
+	return -9;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função usada para fechar um arquivo.
+-----------------------------------------------------------------------------*/
+int close2(FILE2 handle)
+{
+	if (notMountedPartition())
+		return -9;
+	if (notRootOpened())
+		return -1;
+
+	return -9;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função usada para realizar a leitura de uma certa quantidade
+		de bytes (size) de um arquivo.
+-----------------------------------------------------------------------------*/
+int read2(FILE2 handle, char *buffer, int size)
+{
+	initialize();
+	if (notMountedPartition())
+		return -1;
+	if (notRootOpened())
+		return -1;
+	return -9;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função usada para realizar a escrita de uma certa quantidade
+		de bytes (size) de  um arquivo.
+-----------------------------------------------------------------------------*/
+int write2(FILE2 handle, char *buffer, int size)
+{
+	initialize();
+	if (notMountedPartition())
+		return -1;
+	if (notRootOpened())
+		return -1;
+
+	return -9;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função que abre um diretório existente no disco.
+-----------------------------------------------------------------------------*/
+//Se a opera��o foi realizada com sucesso,
+//a fun��o deve posicionar o ponteiro de entradas (current entry) na primeira posi��o v�lida do diret�rio.
+
+int opendir2(void)
+{
+	initialize();
+	if (notMountedPartition())
+		return -1;
+	rootOpened = TRUE;
+
+	return -9;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função usada para ler as entradas de um diretório.
+-----------------------------------------------------------------------------*/
+int readdir2(DIRENT2 *dentry)
+{
+	initialize();
+	if (notMountedPartition())
+		return -1;
+	if (notRootOpened())
+		return -1;
+
+	return -9;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função usada para fechar um diretório.
+-----------------------------------------------------------------------------*/
+int closedir2(void)
+{
+	initialize();
+	if (notMountedPartition())
+		return -1;
+	rootOpened = FALSE;
+
+	return -9;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função usada para criar um caminho alternativo (softlink)
+-----------------------------------------------------------------------------*/
+int sln2(char *linkname, char *filename)
+{
+	initialize();
+	if (notMountedPartition())
+		return -1;
+	if (notRootOpened())
+		return -1;
+
+	return -9;
+}
+
+/*-----------------------------------------------------------------------------
+Função:	Função usada para criar um caminho alternativo (hardlink)
+-----------------------------------------------------------------------------*/
+int hln2(char *linkname, char *filename)
+{
+	initialize();
+	if (notMountedPartition())
+		return -1;
+	if (notRootOpened())
+		return -1;
+
+	return -9;
+}
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+	HELPER FUNCTIONS
+
+
+*/
+void initialize()
+{
+	if (mbr == NULL)
+	{
+		readMBR();
+	}
+}
+
+int readMBR()
 {
 
-	int i = 0;
+	// Free MBR memory, if it is not null (shouldn't have called this function then)
+	if (mbr != NULL)
+	{
+		printf("Freeing MBR memory. You shouldn't call this function if it has already been loaded.\n");
+		free(mbr);
+	}
 
-	if (read_sector(MBR_SECTOR, (BYTE *)&mbr) != 0)
+	// Dynamically allocated MBR memory
+	if ((mbr = (MBR *)malloc(sizeof(MBR))) == NULL)
+	{
+		printf("Couldn't allocate memory for MBR.");
+		return -1;
+	}
+
+	// Read it from "disk"
+	if (read_sector(MBR_SECTOR, (BYTE *)mbr) != 0)
 	{
 		printf("ERROR: Failed reading sector 0 (MBR).\n");
 		return -1;
@@ -81,16 +349,16 @@ int buildMBR()
 
 	if (debug)
 	{
-		printf("MBR Version: %d\n", (int)mbr.version);
-		printf("MBR sectorSize: %d\n", (int)mbr.sectorSize);
-		printf("MBR PartitionTableByteInit: %d\n", (int)mbr.partitionsTableByteInit);
-		printf("MBR partitionQuantity: %d\n", (int)mbr.partitionQuantity);
+		printf("MBR Version: %d\n", (int)mbr->version);
+		printf("MBR sectorSize: %d\n", (int)mbr->sectorSize);
+		printf("MBR PartitionTableByteInit: %d\n", (int)mbr->partitionsTableByteInit);
+		printf("MBR partitionQuantity: %d\n", (int)mbr->partitionQuantity);
 
-		for (i = 0; i < MAX_PARTITION_NUMBER; i++)
+		for (int i = 0; i < MAX_PARTITION_NUMBER && i < mbr->partitionQuantity; i++)
 		{
-			printf("PARTITION %d ---- %s\n", i, mbr.partitions[i].name);
-			printf("First Sector %d\n", mbr.partitions[i].firstSector);
-			printf("Last Sector %d\n", mbr.partitions[i].lastSector);
+			printf("PARTITION %d ---- %s\n", i, mbr->partitions[i].name);
+			printf("First Sector %d\n", mbr->partitions[i].firstSector);
+			printf("Last Sector %d\n", mbr->partitions[i].lastSector);
 		}
 
 		printf("		-----\n");
@@ -101,10 +369,10 @@ int buildMBR()
 
 int formatPartition(int partition_number, int sectors_per_block)
 {
-	PARTITION partition = mbr.partitions[partition_number];
+	PARTITION partition = mbr->partitions[partition_number];
 	SUPERBLOCK sb;
-	BYTE *buffer = (BYTE *)malloc(sizeof(BYTE) * SECTOR_SIZE);
-	BYTE *zeroed_buffer = (BYTE *)calloc(0, sizeof(BYTE) * SECTOR_SIZE);
+	BYTE *buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
+	BYTE *zeroed_buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
 
 	// Calcula variáveis auxiliares
 	DWORD sectorQuantity = partition.lastSector - partition.firstSector + 1;
@@ -114,7 +382,7 @@ int formatPartition(int partition_number, int sectors_per_block)
 	DWORD inodeOccupiedBlocks = ceil(blockQuantity * 0.1);
 	DWORD inodeOccupiedBytes = (inodeOccupiedBlocks * sectors_per_block * SECTOR_SIZE);
 	DWORD inodeQuantity = ceil(inodeOccupiedBytes / 32.0);
-	DWORD inodeBitmapSizeInBlocks = ceil(inodeQuantity / (8.0 * blockSizeInBytes));
+	DWORD inodeBitmapSizeInBlocks = ceil(inodeQuantity / 8.0 / blockSizeInBytes);
 
 	printf("sectorQuantity: %u\n", sectorQuantity);
 	printf("partitionSizeInBytes: %u\n", partitionSizeInBytes);
@@ -144,15 +412,15 @@ int formatPartition(int partition_number, int sectors_per_block)
 	printf("Checksum: %u\n", sb.Checksum);
 
 	// Fill buffer with superBlock
-	memset(buffer, 0, sizeof(BYTE) * SECTOR_SIZE);
 	memcpy(buffer, (BYTE *)(&sb), sizeof(sb));
 
 	// Escreve superBlock no disco (os dados de verdade ocupam apenas o primeiro setor, os outros são zerados)
-	if (write_sector(partition.firstSector, (BYTE *)buffer) != 0)
+	if (write_sector(partition.firstSector, buffer) != 0)
 	{
 		printf("ERROR: Failed writing main superBlock sector for partition %d.\n", partition_number);
 		return -1;
 	}
+
 	for (DWORD sectorIdx = partition.firstSector + 1; sectorIdx < partition.firstSector + sb.blockSize; ++sectorIdx)
 	{
 		if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
@@ -160,12 +428,13 @@ int formatPartition(int partition_number, int sectors_per_block)
 			printf("ERROR: Failed writing zeroed superBlock sector %d for partition %d.\n", sectorIdx, partition_number);
 			return -1;
 		}
+
 		printf("Formatted zeroed superBlock sector %d for partition %d.\n", sectorIdx, partition_number);
 	}
 
 	// Criar/limpar bitmap dos blocos com o zeroed_buffer
-	DWORD first_bbitmap = partition.firstSector + sb.superblockSize * sb.blockSize;
-	DWORD last_bbitmap = first_bbitmap + sb.freeBlocksBitmapSize * sb.blockSize;
+	DWORD first_bbitmap = getBlockBitmapFirstSector(&partition, &sb);
+	DWORD last_bbitmap = getBlockBitmapLastSector(&partition, &sb);
 	for (DWORD sectorIdx = first_bbitmap; sectorIdx < last_bbitmap; ++sectorIdx)
 	{
 		if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
@@ -173,12 +442,13 @@ int formatPartition(int partition_number, int sectors_per_block)
 			printf("ERROR: Failed writing block bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
 			return -1;
 		}
+
 		printf("Formatted free block bitmap sector %d\n", sectorIdx);
 	}
 
 	// Criar/limpar bitmap dos inodes
-	DWORD first_ibitmap = last_bbitmap;
-	DWORD last_ibitmap = first_ibitmap + sb.freeInodeBitmapSize * sb.blockSize;
+	DWORD first_ibitmap = getInodeBitmapFirstSector(&partition, &sb);
+	DWORD last_ibitmap = getInodeBitmapLastSector(&partition, &sb);
 	for (DWORD sectorIdx = first_ibitmap; sectorIdx < last_ibitmap; ++sectorIdx)
 	{
 		if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
@@ -186,6 +456,7 @@ int formatPartition(int partition_number, int sectors_per_block)
 			printf("ERROR: Failed writing inode bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
 			return -1;
 		}
+
 		printf("Formatted free inode bitmap sector %d\n", sectorIdx);
 	}
 
@@ -196,7 +467,9 @@ int formatPartition(int partition_number, int sectors_per_block)
 	return 0;
 }
 
-DWORD computeChecksum(SUPERBLOCK *superBlock)
+// Compute cheksum for a given superBlock summing their first 20 bytes
+// and complementing it values
+inline DWORD computeChecksum(SUPERBLOCK *superBlock)
 {
 	DWORD value = 0, i = 0;
 
@@ -208,120 +481,88 @@ DWORD computeChecksum(SUPERBLOCK *superBlock)
 	return ~value;
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Monta a partição indicada por "partition" no diretório raiz
------------------------------------------------------------------------------*/
-int mount(int partition)
+// Create root folder and configure it
+int createRootFolder(int partition_number)
 {
-	if (mounted_partition != -1)
+	PARTITION partition = mbr->partitions[partition_number];
+	SUPERBLOCK sb;
+
+	// Open this partition bitmap
+	openBitmap2(partition.firstSector);
+	if (searchBitmap2(BITMAP_INODE, 1) != -1)
 	{
-		printf("ERROR: There is already a mounted partition. Please unmount it first.\n");
+		printf("ERROR: There already exists a set bit on Inode bitmap. Please format this partition (%d) before trying to create root folder.\n", partition_number);
 		return -1;
 	}
 
-	mounted_partition = partition;
+	// Read superblock of the partition to sb
+	BYTE *buffer = (BYTE *)malloc(sizeof(BYTE) * SECTOR_SIZE);
+	if (read_sector(partition.firstSector, (BYTE *)buffer) != 0)
+	{
+		printf("ERROR: Failed reading superblock of partition %d\n", partition_number);
+		return -1;
+	}
+	memcpy(&sb, buffer, sizeof(sb));
+
+	// Create inode and mark it on the bitmap
+
+	// Create folder data block, emptied
+
+	// Remember to close bitmap
+	closeBitmap2();
+
 	return 0;
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Desmonta a partição atualmente montada, liberando o ponto de montagem.
------------------------------------------------------------------------------*/
-int unmount(void)
+/*
+	Get bitmap sectors
+*/
+inline DWORD getBlockBitmapFirstSector(PARTITION *p, SUPERBLOCK *sb)
 {
-	mounted_partition = -1;
-	return -9;
+	return p->firstSector + sb->superblockSize * sb->blockSize;
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Função usada para criar um novo arquivo no disco e abrí-lo,
-		sendo, nesse último aspecto, equivalente a função open2.
-		No entanto, diferentemente da open2, se filename referenciar um
-		arquivo já existente, o mesmo terá seu conteúdo removido e
-		assumirá um tamanho de zero bytes.
------------------------------------------------------------------------------*/
-FILE2 create2(char *filename)
+inline DWORD getBlockBitmapLastSector(PARTITION *p, SUPERBLOCK *sb)
 {
-	return -9;
+	return getBlockBitmapFirstSector(p, sb) + sb->freeBlocksBitmapSize * sb->blockSize;
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Função usada para remover (apagar) um arquivo do disco.
------------------------------------------------------------------------------*/
-int delete2(char *filename)
+inline DWORD getInodeBitmapFirstSector(PARTITION *p, SUPERBLOCK *sb)
 {
-	return -9;
+	return getBlockBitmapLastSector(p, sb);
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Função que abre um arquivo existente no disco.
------------------------------------------------------------------------------*/
-FILE2 open2(char *filename)
+inline DWORD getInodeBitmapLastSector(PARTITION *p, SUPERBLOCK *sb)
 {
-	return -9;
+	return getInodeBitmapFirstSector(p, sb) + sb->freeInodeBitmapSize * sb->blockSize;
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Função usada para fechar um arquivo.
------------------------------------------------------------------------------*/
-int close2(FILE2 handle)
+inline DWORD getDataFirstSector(PARTITION *p, SUPERBLOCK *sb)
 {
-	return -9;
+	return getInodeBitmapLastSector(p, sb);
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Função usada para realizar a leitura de uma certa quantidade
-		de bytes (size) de um arquivo.
------------------------------------------------------------------------------*/
-int read2(FILE2 handle, char *buffer, int size)
+/*
+	Helper functions when initializing the library
+*/
+inline BOOL notMountedPartition()
 {
-	return -9;
+	if (superblock == NULL)
+	{
+		printf("ERROR: There is no mounted partition. Please mount it first.\n");
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Função usada para realizar a escrita de uma certa quantidade
-		de bytes (size) de  um arquivo.
------------------------------------------------------------------------------*/
-int write2(FILE2 handle, char *buffer, int size)
+inline BOOL notRootOpened()
 {
-	return -9;
-}
+	if (!rootOpened)
+	{
+		printf("ERROR: You must open the root directory before running this function.");
+		return TRUE;
+	}
 
-/*-----------------------------------------------------------------------------
-Função:	Função que abre um diretório existente no disco.
------------------------------------------------------------------------------*/
-int opendir2(void)
-{
-	return -9;
-}
-
-/*-----------------------------------------------------------------------------
-Função:	Função usada para ler as entradas de um diretório.
------------------------------------------------------------------------------*/
-int readdir2(DIRENT2 *dentry)
-{
-	return -9;
-}
-
-/*-----------------------------------------------------------------------------
-Função:	Função usada para fechar um diretório.
------------------------------------------------------------------------------*/
-int closedir2(void)
-{
-	return -9;
-}
-
-/*-----------------------------------------------------------------------------
-Função:	Função usada para criar um caminho alternativo (softlink)
------------------------------------------------------------------------------*/
-int sln2(char *linkname, char *filename)
-{
-	return -9;
-}
-
-/*-----------------------------------------------------------------------------
-Função:	Função usada para criar um caminho alternativo (hardlink)
------------------------------------------------------------------------------*/
-int hln2(char *linkname, char *filename)
-{
-	return -9;
+	return FALSE;
 }
