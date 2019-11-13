@@ -541,6 +541,7 @@ int createRootFolder(int partition_number)
 	if (setBitmap2(BITMAP_DADOS, 0, 1) != 0)
 	{
 		printf("ERROR: Failed setting bitmap for root folder data block.\n");
+		setBitmap2(BITMAP_INODE, 0, 0); // Revert changed bitmap value
 		return -1;
 	};
 	printf("Set data bitmap for root folder.\n");
