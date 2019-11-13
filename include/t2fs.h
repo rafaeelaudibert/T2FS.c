@@ -6,8 +6,6 @@
 #define MAX_PARTITION_NAME_SIZE 24
 #define MAX_PARTITION_NUMBER 4
 
-typedef int FILE2;
-
 typedef unsigned char BYTE;
 typedef unsigned short int WORD;
 typedef unsigned int DWORD;
@@ -41,7 +39,7 @@ typedef struct
 	WORD partitionQuantity;
 	PARTITION partitions[MAX_PARTITION_NUMBER];
 	char padding[120];
-	
+
 } MBR;
 
 #pragma pack(pop)
@@ -233,8 +231,5 @@ Sa�da:	Se a opera��o foi realizada com sucesso, a fun��o retorna "0" (
 	Em caso de erro, ser� retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int hln2(char *linkname, char *filename);
-int truncate2 (FILE2 handle);
-int seek2 (FILE2 handle, DWORD offset);
-
 
 #endif
