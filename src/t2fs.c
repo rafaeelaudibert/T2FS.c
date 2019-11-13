@@ -586,7 +586,7 @@ inline DWORD getInodesFirstSector(PARTITION *p, SUPERBLOCK *sb)
 
 inline DWORD getDataBlocksFirstSector(PARTITION *p, SUPERBLOCK *sb)
 {
-	return getInodesFirstSector(p, sb) + sb->inodeAreaSize;
+	return getInodesFirstSector(p, sb) + sb->inodeAreaSize * sb->blockSize;
 }
 
 /*
