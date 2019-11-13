@@ -19,8 +19,11 @@ typedef struct t2fs_superbloco SUPERBLOCK;
 typedef struct t2fs_record RECORD;
 typedef struct t2fs_inode I_NODE;
 
+// Global variables
 MBR mbr;
-BOOL diskMounted = FALSE;
+int mounted_partition = 0;
+
+// Debug variables
 BOOL debug = TRUE;
 
 // "Private" functions
@@ -210,7 +213,14 @@ Função:	Monta a partição indicada por "partition" no diretório raiz
 -----------------------------------------------------------------------------*/
 int mount(int partition)
 {
-	return -9;
+	if (mounted_partition != -1)
+	{
+		printf("ERROR: There is already a mounted partition. Please unmount it first.\n");
+		return -1;
+	}
+
+	mounted_partition = partition;
+	return 0;
 }
 
 /*-----------------------------------------------------------------------------
@@ -218,6 +228,7 @@ Função:	Desmonta a partição atualmente montada, liberando o ponto de montage
 -----------------------------------------------------------------------------*/
 int unmount(void)
 {
+	mounted_partition = -1;
 	return -9;
 }
 
