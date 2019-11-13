@@ -33,6 +33,8 @@ DWORD getBlockBitmapFirstSector(PARTITION *, SUPERBLOCK *);
 DWORD getBlockBitmapLastSector(PARTITION *, SUPERBLOCK *);
 DWORD getInodeBitmapFirstSector(PARTITION *, SUPERBLOCK *);
 DWORD getInodeBitmapLastSector(PARTITION *, SUPERBLOCK *);
+DWORD getInodesFirstSector(PARTITION *, SUPERBLOCK *);
+DWORD getDataBlocksFirstSector(PARTITION *, SUPERBLOCK *);
 BOOL notMountedPartition();
 BOOL notRootOpened();
 
@@ -497,12 +499,58 @@ int createRootFolder(int partition_number)
 	}
 	memcpy(&sb, buffer, sizeof(sb));
 
-	// Create inode and mark it on the bitmap
+	// Create inode and mark it on the bitmap, automatically pointing to the first entry in the data block
+	BYTE *inode_buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
+	I_NODE inode = {(DWORD)1, (DWORD)0, {(DWORD)0, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
+	memcpy(inode_buffer, &inode, sizeof(inode));
+	if (write_sector(getInodesFirstSector(&partition, &sb), inode_buffer) != 0)
+	{
+		printf("ERROR: Couldn't write root folder inode.\n");
+		return -1;
+	};
+	printf("DEBUG: Wrote root folder inode sector on %d sector\n", getInodesFirstSector(&partition, &sb));
+	memset(inode_buffer, 0, sizeof(BYTE) * SECTOR_SIZE);
+	for (int i = 1; i < sb.blockSize; ++i)
+	{
+		if (write_sector(getInodesFirstSector(&partition, &sb) + i, inode_buffer) != 0)
+		{
+			printf("ERROR: Couldn't write root folder inode.\n");
+			return -1;
+		}
+		printf("DEBUG: Wrote extra root folder inode sector %d\n", getInodesFirstSector(&partition, &sb) + i);
+	}
+	if (setBitmap2(BITMAP_INODE, 0, 1) != 0)
+	{
+		printf("ERROR: Failed setting bitmap for root folder inode.\n");
+		return -1;
+	};
+	printf("Set inode bitmap for root folder.\n");
 
 	// Create folder data block, emptied
+	printf("Will write root folder first data block on sector %d.\n", getDataBlocksFirstSector(&partition, &sb));
+	BYTE *data_buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
+	for (int i = 0; i < sb.blockSize; ++i)
+	{
+		if (write_sector(getDataBlocksFirstSector(&partition, &sb) + i, data_buffer) != 0)
+		{
+			printf("ERROR: Couldn't write root folder data block.\n");
+			return -1;
+		}
+		printf("DEBUG: Wrote root folder data on sector %d\n", getDataBlocksFirstSector(&partition, &sb) + i);
+	}
+	if (setBitmap2(BITMAP_DADOS, 0, 1) != 0)
+	{
+		printf("ERROR: Failed setting bitmap for root folder data block.\n");
+		return -1;
+	};
+	printf("Set data bitmap for root folder.\n");
 
 	// Remember to close bitmap
 	closeBitmap2();
+
+	// Remember to free dynamically allocated memory
+	free(inode_buffer);
+	free(data_buffer);
 
 	return 0;
 }
@@ -530,9 +578,14 @@ inline DWORD getInodeBitmapLastSector(PARTITION *p, SUPERBLOCK *sb)
 	return getInodeBitmapFirstSector(p, sb) + sb->freeInodeBitmapSize * sb->blockSize;
 }
 
-inline DWORD getDataFirstSector(PARTITION *p, SUPERBLOCK *sb)
+inline DWORD getInodesFirstSector(PARTITION *p, SUPERBLOCK *sb)
 {
 	return getInodeBitmapLastSector(p, sb);
+}
+
+inline DWORD getDataBlocksFirstSector(PARTITION *p, SUPERBLOCK *sb)
+{
+	return getInodesFirstSector(p, sb) + sb->inodeAreaSize;
 }
 
 /*
