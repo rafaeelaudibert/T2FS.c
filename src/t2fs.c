@@ -49,19 +49,19 @@ int format2(int partition, int sectors_per_block)
 {
 	if (buildMBR() != 0)
 	{
-		printf("\tERROR: Failed reading MBR.\n");
+		printf("ERROR: Failed reading MBR.\n");
 		return -1;
 	}
 
 	if (partition >= (int)mbr.partitionQuantity)
 	{
-		printf("\tERROR: There is no partition %d in disk.\n", partition);
+		printf("ERROR: There is no partition %d in disk.\n", partition);
 		return -1;
 	}
 
 	if (formatPartition(partition, sectors_per_block) != 0)
 	{
-		printf("ERROR: Failed formating partition %d\t", partition);
+		printf("ERROR: Failed formating partition %d\n", partition);
 		return -1;
 	}
 
@@ -75,7 +75,7 @@ int buildMBR()
 
 	if (read_sector(MBR_SECTOR, (BYTE *)&mbr) != 0)
 	{
-		printf("\tERROR: Failed reading sector 0 (MBR).\n");
+		printf("ERROR: Failed reading sector 0 (MBR).\n");
 		return -1;
 	}
 
@@ -150,14 +150,14 @@ int formatPartition(int partition_number, int sectors_per_block)
 	// Escreve superBlock no disco (os dados de verdade ocupam apenas o primeiro setor, os outros são zerados)
 	if (write_sector(partition.firstSector, (BYTE *)buffer) != 0)
 	{
-		printf("\tERROR: Failed writing main superBlock sector for partition %d.\n", partition_number);
+		printf("ERROR: Failed writing main superBlock sector for partition %d.\n", partition_number);
 		return -1;
 	}
 	for (DWORD sectorIdx = partition.firstSector + 1; sectorIdx < partition.firstSector + sb.blockSize; ++sectorIdx)
 	{
 		if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
 		{
-			printf("\tERROR: Failed writing zeroed superBlock sector %d for partition %d.\n", sectorIdx, partition_number);
+			printf("ERROR: Failed writing zeroed superBlock sector %d for partition %d.\n", sectorIdx, partition_number);
 			return -1;
 		}
 		printf("Formatted zeroed superBlock sector %d for partition %d.\n", sectorIdx, partition_number);
@@ -170,7 +170,7 @@ int formatPartition(int partition_number, int sectors_per_block)
 	{
 		if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
 		{
-			printf("\tERROR: Failed writing block bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
+			printf("ERROR: Failed writing block bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
 			return -1;
 		}
 		printf("Formatted free block bitmap sector %d\n", sectorIdx);
@@ -183,7 +183,7 @@ int formatPartition(int partition_number, int sectors_per_block)
 	{
 		if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
 		{
-			printf("\tERROR: Failed writing inode bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
+			printf("ERROR: Failed writing inode bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
 			return -1;
 		}
 		printf("Formatted free inode bitmap sector %d\n", sectorIdx);
