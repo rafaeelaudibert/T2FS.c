@@ -59,12 +59,6 @@ int format2(int partition, int sectors_per_block)
 {
 	initialize();
 
-	if (readMBR() != 0)
-	{
-		printf("ERROR: Failed reading MBR.\n");
-		return -1;
-	}
-
 	if (partition >= (int)mbr->partitionQuantity)
 	{
 		printf("ERROR: There is no partition %d in disk.\n", partition);
