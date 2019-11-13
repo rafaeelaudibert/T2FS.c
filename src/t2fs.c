@@ -44,8 +44,7 @@ Função:	Informa a identificação dos desenvolvedores do T2FS.
 -----------------------------------------------------------------------------*/
 int identify2(char *name, int size)
 {
-	if (mbr == NULL)
-		readMBR();
+	initialize();
 
 	strncpy(name, "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695", size);
 	return 0;
