@@ -223,8 +223,8 @@ int readdir2(DIRENT2 *dentry)
 	I_NODE *rootFolderInode = getInode(0);
 
 	// Check if we already finished reading the entries
-	// if (finishedEntries(rootFolderInode))
-	// 	return -1;
+	if (finishedEntries(rootFolderInode))
+		return -1;
 
 	RECORD record;
 	if (getRecordByNumber(getCurrentDirectoryEntryIndex(), &record) != 0)
@@ -239,9 +239,7 @@ int readdir2(DIRENT2 *dentry)
 
 	nextDirectoryEntry();
 
-	static int counter = 1;
-	counter--;
-	return counter;
+	return 0;
 }
 
 /*-----------------------------------------------------------------------------
