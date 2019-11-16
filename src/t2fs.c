@@ -261,9 +261,8 @@ int readdir2(DIRENT2 *dentry)
 		return -1;
 
 	DWORD direct_quantity = 2;
-	DWORD simple_indirect = superblock->blockSize * SECTOR_SIZE / sizeof(DWORD);
-	DWORD double_indirect = simple_indirect * (superblock->blockSize * SECTOR_SIZE / sizeof(DWORD));
-
+	DWORD simple_indirect_quantity = superblock->blockSize * SECTOR_SIZE / sizeof(DWORD);
+	DWORD double_indirect_quantity = simple_indirect_quantity * (superblock->blockSize * SECTOR_SIZE / sizeof(DWORD));
 	PARTITION partition = mbr->partitions[mounted_partition];
 	I_NODE rootFolderInode;
 	BYTE *buffer = (BYTE *)malloc(sizeof(BYTE) * SECTOR_SIZE);
@@ -314,14 +313,14 @@ int readdir2(DIRENT2 *dentry)
 		memcpy(&file_inode, buffer + inode_sector_position, sizeof(I_NODE));
 		dentry->fileSize = file_inode.bytesFileSize;
 	}
-	else if (block < direct_quantity + simple_indirect)
+	else if (block < direct_quantity + simple_indirect_quantity)
 	{
 		// Read indirectly simple
 		block -= direct_quantity; // To find out which block inside the indirection we should read
 
 		// We need to find out what is the sector we should read, but for that we need to go through the indirection
-		DWORD indirect_sector = (block * 4) / SECTOR_SIZE;
-		DWORD indirect_sector_position = (block * 4) % SECTOR_SIZE;
+		DWORD indirect_sector = (block * sizeof(DWORD)) / SECTOR_SIZE;
+		DWORD indirect_sector_position = (block * sizeof(DWORD)) % SECTOR_SIZE;
 		if ((read_sector(getDataBlocksFirstSector(&partition, superblock) + (rootFolderInode.singleIndPtr * superblock->blockSize) + indirect_sector, buffer)) != 0)
 		{
 			printf("ERROR: Couldn't read simple indirection data block.\n");
@@ -356,8 +355,61 @@ int readdir2(DIRENT2 *dentry)
 	}
 	else
 	{
-		// TODO: Read indirectly double
+		block -= direct_quantity;
+		block -= simple_indirect_quantity;
+
+		// We need to find out what is the sector we should read, but for that we need to go through the indirection
+		DWORD double_indirect_block = (block * sizeof(DWORD)) / ((superblock->blockSize * SECTOR_SIZE) / sizeof(DWORD));
+		DWORD double_indirect_sector = double_indirect_block / SECTOR_SIZE;
+		DWORD double_indirect_sector_position = double_indirect_block % SECTOR_SIZE;
+		if ((read_sector(getDataBlocksFirstSector(&partition, superblock) + (rootFolderInode.doubleIndPtr * superblock->blockSize) + double_indirect_sector, buffer)) != 0)
+		{
+			printf("ERROR: Couldn't read double indirection first data block.\n");
+			return -1;
+		}
+		DWORD double_indirection_block = *((DWORD *)(buffer + double_indirect_sector_position)) * superblock->blockSize;
+
+		// ------------------------------- //
+
+		// We need to find out what is the sector we should read, but for that we need to go through the indirection
+		DWORD simple_indirect_block_position = (block * sizeof(DWORD)) % ((superblock->blockSize * SECTOR_SIZE) / sizeof(DWORD));
+		DWORD simple_indirect_sector = simple_indirect_block_position / SECTOR_SIZE;
+		DWORD simple_indirect_sector_position = simple_indirect_block_position % SECTOR_SIZE;
+		if ((read_sector(getDataBlocksFirstSector(&partition, superblock) + double_indirection_block + simple_indirect_sector, buffer)) != 0)
+		{
+			printf("ERROR: Couldn't read double indirection double data block.\n");
+			return -1;
+		}
+
+		// Want this values
+		DWORD block_to_read = *((DWORD *)(buffer + simple_indirect_sector_position)) * superblock->blockSize;
+		DWORD sector_to_read = block_to_read + sector;
+		if ((read_sector(getDataBlocksFirstSector(&partition, superblock) + sector_to_read, buffer)) != 0)
+		{
+			printf("ERROR: Failed to read folder data sector.\n");
+			return -1;
+		}
+		RECORD record;
+		memcpy(&record, buffer + sector_position, sizeof(RECORD));
+
+		memcpy(dentry->name, record.name, sizeof(BYTE) * 51);
+		dentry->fileType = record.TypeVal;
+
+		// Get file inode to find out file size
+		I_NODE file_inode;
+		DWORD inode_sector = (record.inodeNumber * sizeof(I_NODE)) / SECTOR_SIZE;
+		DWORD inode_sector_position = (record.inodeNumber * sizeof(I_NODE)) % SECTOR_SIZE;
+		if ((read_sector(getInodesFirstSector(&partition, superblock) + inode_sector, buffer)) != 0)
+		{
+			printf("ERROR: Couldn't read file inode.\n");
+			return -1;
+		}
+		memcpy(&file_inode, buffer + inode_sector_position, sizeof(I_NODE));
+		dentry->fileSize = file_inode.bytesFileSize;
 	}
+
+	// Update rootFolderFileIndex
+	rootFolderFileIndex++;
 
 	return 0;
 }
