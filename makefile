@@ -40,7 +40,7 @@
 #
 
 CC=gcc -c
-CFLAGS=-Wall -g
+CFLAGS= -lm -Wall -Wextra -O2 -Wunreachable-code -Wuninitialized -Winit-self -std=gnu99
 LIB_DIR=./lib
 INC_DIR=./include
 BIN_DIR=./bin
@@ -54,7 +54,7 @@ all: $(BIN_DIR)/t2fs.o
 $(BIN_DIR)/t2fs.o: $(SRC_DIR)/t2fs.c
 	$(CC) -o $@ $< -I$(INC_DIR) $(CFLAGS)
 
-tar:
+tar: clean
 	@cd .. && tar -zcvf 274693.tar.gz t2fs
 
 clean:
