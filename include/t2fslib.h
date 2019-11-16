@@ -141,7 +141,7 @@ BYTE *getZeroedBuffer(size_t size);
 I_NODE *getInode(DWORD inodeNumber);
 
 // Gets a record by its number, filling the `record` structure
-int getRecordByNumber(int number, RECORD *structure);
+int getRecordByNumber(int number, RECORD *record);
 
 // Quantity of direct blocks that an INODE can hold
 DWORD getInodeDirectQuantity();
