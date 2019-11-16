@@ -154,7 +154,7 @@ Função:	Função usada para fechar um arquivo.
 int close2(FILE2 handle)
 {
 	if (notMountedPartition())
-		return -9;
+		return -1;
 	if (notRootOpened())
 		return -1;
 
