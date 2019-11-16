@@ -39,7 +39,6 @@ typedef struct
 	WORD partitionQuantity;
 	PARTITION partitions[MAX_PARTITION_NUMBER];
 	char padding[120];
-
 } MBR;
 
 #pragma pack(pop)

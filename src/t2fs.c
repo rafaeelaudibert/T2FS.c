@@ -61,6 +61,9 @@ int format2(int partition, int sectors_per_block)
 {
 	initialize();
 
+	// TODO: Remove this line
+	unmount(); // Unmount temporarily, for testing in the shell
+
 	if (partition >= (int)mbr->partitionQuantity)
 	{
 		printf("ERROR: There is no partition %d in disk.\n", partition);
@@ -78,6 +81,9 @@ int format2(int partition, int sectors_per_block)
 		printf("ERROR: Failed while creating root folder on partition %d\n", partition);
 		return -1;
 	}
+
+	// TODO: Remove this line
+	mount(partition); // Mount temporarily, for testing in the shell
 
 	return 0;
 }
@@ -97,12 +103,12 @@ int mount(int partition)
 	BYTE *buffer = (BYTE *)malloc(sizeof(BYTE) * SECTOR_SIZE);
 	if (read_sector(mbr->partitions[partition].firstSector, (BYTE *)buffer) != 0)
 	{
-		printf("ERROR: Failed reading superblock 0 (MBR).\n");
+		printf("ERROR: Failed reading superblock.\n");
 		return -1;
 	}
 
 	superblock = (SUPERBLOCK *)malloc(sizeof(SUPERBLOCK));
-	memcpy(superblock, buffer, sizeof(superblock));
+	memcpy(superblock, buffer, sizeof(SUPERBLOCK));
 
 	// Mark mounted partition
 	mounted_partition = partition;
@@ -123,8 +129,11 @@ int unmount(void)
 	initialize();
 
 	// Free dynamically allocated superblock memory and point it to null
+	if (superblock != NULL)
+	{
 	free(superblock);
 	superblock = NULL;
+	}
 
 	// Unmark mounted partition
 	mounted_partition = -1;
@@ -234,8 +243,9 @@ int opendir2(void)
 	if (notMountedPartition())
 		return -1;
 	rootOpened = TRUE;
+	rootFolderFileIndex = 0;
 
-	return -9;
+	return 0;
 }
 
 /*-----------------------------------------------------------------------------
@@ -262,7 +272,7 @@ int closedir2(void)
 		return -1;
 	rootOpened = FALSE;
 
-	return -9;
+	return 0;
 }
 
 /*-----------------------------------------------------------------------------
