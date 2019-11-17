@@ -283,6 +283,8 @@ int configureMountedPartition(int partition_number)
 
     // Remember to clean up buffer allocated memory
     free(buffer);
+
+    return 0;
 }
 
 inline int unmountPartition()
@@ -487,6 +489,7 @@ int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYT
     DWORD double_ind_sector = inode->doubleIndPtr * getSuperblock()->blockSize;
     DWORD simple_ind_sector = inode->singleIndPtr * getSuperblock()->blockSize;
     DWORD no_ind_sector = inode->dataPtr[block_number > 2 ? 0 : block_number] * getSuperblock()->blockSize; // We fill with a 0 in the default case, because it will be filled later
+    printf("no_ind_sector: %d\n", no_ind_sector);
 
     if (block_number >= direct_quantity + simple_indirect_quantity)
     {
@@ -528,7 +531,8 @@ int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYT
     // Read without indirection
     DWORD block_to_write = no_ind_sector;
     DWORD sector_to_write = block_to_write + sector_number;
-    if ((write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + sector_to_write, buffer)) != 0)
+    printf("block_to_write: %d\tsector_to_write: %d\tpos: %d\n", block_to_write, sector_to_write, getDataBlocksFirstSector(getPartition(), getSuperblock()) + sector_to_write);
+    if ((write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + sector_to_write, write_buffer)) != 0)
     {
         printf("ERROR: Failed to read folder data sector.\n");
         return -1;
