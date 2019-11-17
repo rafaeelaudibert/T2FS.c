@@ -75,8 +75,8 @@ int formatPartition(int partition_number, int sectors_per_block)
 {
     PARTITION partition = mbr->partitions[partition_number];
     SUPERBLOCK sb;
-    BYTE *buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
-    BYTE *zeroed_buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
+    BYTE *buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
+    BYTE *zeroed_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
 
     // Calcula variáveis auxiliares
     DWORD sectorQuantity = partition.lastSector - partition.firstSector + 1;
@@ -98,7 +98,8 @@ int formatPartition(int partition_number, int sectors_per_block)
     printf("inodeBitmapSizeInBlocks: %u\n", inodeBitmapSizeInBlocks);
 
     // Preenche super block
-    strncpy(sb.id, "T2FS", 4);
+    BYTE superblock_id[] = "T2FS";
+    memcpy(sb.id, superblock_id, 4);
     sb.version = (WORD)0x7E32;
     sb.superblockSize = (WORD)1;
     sb.freeBlocksBitmapSize = (WORD)inodeBitmapSizeInBlocks;
@@ -200,7 +201,7 @@ int createRootFolder(int partition_number)
     }
 
     // Read superblock of the partition to sb
-    BYTE *buffer = (BYTE *)malloc(sizeof(BYTE) * SECTOR_SIZE);
+    BYTE *buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
     if (read_sector(partition.firstSector, (BYTE *)buffer) != 0)
     {
         printf("ERROR: Failed reading superblock of partition %d\n", partition_number);
@@ -209,7 +210,7 @@ int createRootFolder(int partition_number)
     memcpy(&sb, buffer, sizeof(sb));
 
     // Create inode and mark it on the bitmap, automatically pointing to the first entry in the data block
-    BYTE *inode_buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
+    BYTE *inode_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
     I_NODE inode = {(DWORD)1, (DWORD)0, {(DWORD)0, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
     memcpy(inode_buffer, &inode, sizeof(inode));
     if (write_sector(getInodesFirstSector(&partition, &sb), inode_buffer) != 0)
@@ -237,7 +238,7 @@ int createRootFolder(int partition_number)
 
     // Create folder data block, emptied
     printf("Will write root folder first data block on sector %d.\n", getDataBlocksFirstSector(&partition, &sb));
-    BYTE *data_buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
+    BYTE *data_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
     for (int i = 0; i < sb.blockSize; ++i)
     {
         if (write_sector(getDataBlocksFirstSector(&partition, &sb) + i, data_buffer) != 0)
@@ -308,7 +309,6 @@ inline void openRoot()
 
 inline void closeRoot()
 {
-
     rootOpened = FALSE;
 
     return;
@@ -355,26 +355,26 @@ inline DWORD getDataBlocksFirstSector(PARTITION *p, SUPERBLOCK *sb)
 /*
 	Helper functions when initializing the library
 */
-inline BOOL notMountedPartition()
+inline BOOL isPartitionMounted()
 {
     if (superblock == NULL)
     {
         printf("ERROR: There is no mounted partition. Please mount it first.\n");
-        return TRUE;
+        return FALSE;
     }
 
-    return FALSE;
+    return TRUE;
 }
 
-inline BOOL notRootOpened()
+inline BOOL isRootOpened()
 {
     if (!rootOpened)
     {
-        printf("ERROR: You must open the root directory before running this function.");
-        return TRUE;
+        printf("ERROR: You must open the root directory.");
+        return FALSE;
     }
 
-    return FALSE;
+    return TRUE;
 }
 
 /* Getters */
@@ -410,75 +410,54 @@ int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE
     DWORD simple_indirect_quantity = getInodeSimpleIndirectQuantity();
     DWORD double_indirect_quantity = getInodeDoubleIndirectQuantity();
 
-    // TODO: Check code below
-    if (block_number < direct_quantity)
-    {
-        // Read without indirection
-        DWORD block_to_read = inode->dataPtr[block_number] * getSuperblock()->blockSize;
-        DWORD sector_to_read = block_to_read + sector_number;
-        if ((read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + sector_to_read, buffer)) != 0)
-        {
-            printf("ERROR: Failed to read folder data sector.\n");
-            return -1;
-        }
-    }
-    else if (block_number < direct_quantity + simple_indirect_quantity)
-    {
-        // Read with simple indirection
-        block_number -= direct_quantity; // To find out which block inside the indirection we should read
+    DWORD double_ind_sector = inode->doubleIndPtr * getSuperblock()->blockSize;
+    DWORD simple_ind_sector = inode->singleIndPtr * getSuperblock()->blockSize;
+    DWORD no_ind_sector = inode->dataPtr[block_number > 2 ? 0 : block_number] * getSuperblock()->blockSize; // We fill with a 0 in the default case, because it will be filled later
 
-        // We need to find out what is the sector we should read, but for that we need to go through the indirection
-        DWORD indirect_sector = (block_number * sizeof(DWORD)) / SECTOR_SIZE;
-        DWORD indirect_sector_position = (block_number * sizeof(DWORD)) % SECTOR_SIZE;
-        if ((read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + (inode->singleIndPtr * getSuperblock()->blockSize) + indirect_sector, buffer)) != 0)
-        {
-            printf("ERROR: Couldn't read simple indirection data block.\n");
-            return -1;
-        }
-
-        // Want this values
-        DWORD block_to_read = *((DWORD *)(buffer + indirect_sector_position)) * getSuperblock()->blockSize;
-        DWORD sector_to_read = block_to_read + sector_number;
-        if ((read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + sector_to_read, buffer)) != 0)
-        {
-            printf("ERROR: Failed to read folder data sector.\n");
-            return -1;
-        }
-    }
-    else
+    if (block_number >= direct_quantity + simple_indirect_quantity)
     {
         // Read with double indirection
-        block_number -= direct_quantity;
-        block_number -= simple_indirect_quantity;
+        int shifted_block_number = block_number - direct_quantity - simple_indirect_quantity;
 
-        // We need to find out what is the sector we should read, but for that we need to go through the indirection
-        DWORD double_indirect_block = (block_number * sizeof(DWORD)) / (getBlocksize() / sizeof(DWORD));
-        DWORD double_indirect_sector = double_indirect_block / SECTOR_SIZE;
-        DWORD double_indirect_sector_position = double_indirect_block % SECTOR_SIZE;
-        if ((read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + (inode->doubleIndPtr * getSuperblock()->blockSize) + double_indirect_sector, buffer)) != 0)
+        // We need to find where is the block with the simple indirection
+        DWORD double_indirect_block = (shifted_block_number * sizeof(DWORD)) / (getBlocksize() / sizeof(DWORD));
+        DWORD double_indirect_block_sector_offset = double_indirect_block / SECTOR_SIZE;
+        DWORD double_indirect_sector_offset = double_indirect_block % SECTOR_SIZE;
+        if ((read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + double_ind_sector + double_indirect_block_sector_offset, buffer)) != 0)
         {
             printf("ERROR: Couldn't read double indirection first data block.\n");
             return -1;
         }
 
-        DWORD double_indirection_block = *((DWORD *)(buffer + double_indirect_sector_position)) * getSuperblock()->blockSize;
-        DWORD simple_indirect_block_position = (block_number * sizeof(DWORD)) % (getBlocksize() / sizeof(DWORD));
-        DWORD simple_indirect_sector = simple_indirect_block_position / SECTOR_SIZE;
-        DWORD simple_indirect_sector_position = simple_indirect_block_position % SECTOR_SIZE;
-        if ((read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + double_indirection_block + simple_indirect_sector, buffer)) != 0)
+        simple_ind_sector = *((DWORD *)(buffer + double_indirect_sector_offset)) * getSuperblock()->blockSize;
+        block_number = (shifted_block_number % simple_indirect_quantity) + direct_quantity; // We add direct_quantity to make sense to discount it in the next indirection
+    }
+
+    if (block_number >= direct_quantity)
+    {
+        // Read with simple indirection
+        DWORD shifted_block_number = block_number - direct_quantity; // To find out which block inside the indirection we should read
+
+        // We need to find where is the direct block
+        DWORD indirect_sector = (shifted_block_number * sizeof(DWORD)) / SECTOR_SIZE;
+        DWORD indirect_sector_position = (shifted_block_number * sizeof(DWORD)) % SECTOR_SIZE;
+        if ((read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + simple_ind_sector + indirect_sector, buffer)) != 0)
         {
-            printf("ERROR: Couldn't read double indirection double data block.\n");
+            printf("ERROR: Couldn't read simple indirection data block.\n");
             return -1;
         }
 
-        // Want this values
-        DWORD block_to_read = *((DWORD *)(buffer + simple_indirect_sector_position)) * superblock->blockSize;
-        DWORD sector_to_read = block_to_read + sector_number;
-        if ((read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + sector_to_read, buffer)) != 0)
-        {
-            printf("ERROR: Failed to read folder data sector.\n");
-            return -1;
-        }
+        // Update this value to know where is the block to read
+        no_ind_sector = *((DWORD *)(buffer + indirect_sector_position)) * getSuperblock()->blockSize;
+    }
+
+    // Read without indirection
+    DWORD block_to_read = no_ind_sector;
+    DWORD sector_to_read = block_to_read + sector_number;
+    if ((read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + sector_to_read, buffer)) != 0)
+    {
+        printf("ERROR: Failed to read folder data sector.\n");
+        return -1;
     }
 
     return 0;

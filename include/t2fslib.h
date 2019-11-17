@@ -107,10 +107,10 @@ DWORD getInodesFirstSector(PARTITION *, SUPERBLOCK *);
 DWORD getDataBlocksFirstSector(PARTITION *, SUPERBLOCK *);
 
 // Checks if a partition is already mounted
-BOOL notMountedPartition();
+BOOL isPartitionMounted();
 
 // Checks if the root folder "\\" is already opened
-BOOL notRootOpened();
+BOOL isRootOpened();
 
 // Returns a `MBR` pointer to the disk MBR
 MBR *getMBR();
@@ -141,7 +141,7 @@ BYTE *getZeroedBuffer(size_t size);
 I_NODE *getInode(DWORD inodeNumber);
 
 // Gets a record by its number, filling the `record` structure
-int getRecordByNumber(int number, RECORD *structure);
+int getRecordByNumber(int number, RECORD *record);
 
 // Quantity of direct blocks that an INODE can hold
 DWORD getInodeDirectQuantity();
