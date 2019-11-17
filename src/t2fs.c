@@ -19,6 +19,9 @@ int identify2(char *name, int size)
 	BYTE identification[] = "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695";
 	memcpy(name, identification, size);
 
+	// TODO: Remove this
+	mount(0);
+
 	return 0;
 }
 
@@ -34,7 +37,7 @@ int format2(int partition, int sectors_per_block)
 	// TODO: Remove this line
 	unmount(); // Unmount temporarily, for testing in the shell
 
-		if (partition >= (int)(getMBR()->partitionQuantity))
+	if (partition >= (int)(getMBR()->partitionQuantity))
 	{
 		printf("ERROR: There is no partition %d in disk.\n", partition);
 		return -1;
@@ -54,7 +57,6 @@ int format2(int partition, int sectors_per_block)
 
 	// TODO: Remove this line
 	mount(partition); // Mount temporarily, for testing in the shell
-	opendir2();
 
 	return 0;
 }
@@ -115,79 +117,192 @@ FILE2 create2(char *filename)
 {
 
 	initialize();
+
+	// TODO: Remove this line later on
+	opendir2();
+
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
+	// Configure bitmap
+	openBitmap2(getPartition()->firstSector);
+
 	I_NODE *dirInode = getInode(0);
 	RECORD record;
-	RECORD newRecord;
 
-	int filesQuantity = dirInode->bytesFileSize/RECORD_SIZE;
-
-	for (int i= 0; i<filesQuantity; i ++){
+	// Remove old file with same name
+	int filesQuantity = dirInode->bytesFileSize / RECORD_SIZE;
+	for (int i = 0; i < filesQuantity; i++)
+	{
 		getRecordByNumber(i, &record);
-		if(strcmp(record.name, filename) == 0){
-			//delete
+		if (strcmp(record.name, filename) == 0)
+		{
+			if (delete2(filename) != 0)
+			{
+				printf("ERROR: There was an error while trying to override a file with the same name.\n");
+				return -1;
+			};
+			break;
 		}
 	}
 
-	openBitmap2(getPartition()->firstSector);
-
-	DWORD newRecordBlock = dirInode->bytesFileSize / getBlocksize();
-	DWORD newRecordSector = dirInode->bytesFileSize / SECTOR_SIZE;
-	newRecordSector = (newRecordSector) / getSuperblock()->blockSize;
-	DWORD newRecordSectorOffset = newRecordSector % getSuperblock()->blockSize;
-
-	strcpy(record.name, filename);
-	record.TypeVal = TYPEVAL_REGULAR;
+	// Fetch and set bitmaps info
 	DWORD inodeNumber = searchBitmap2(BITMAP_INODE, 0);
-	record.inodeNumber = inodeNumber;
 	DWORD blockNum = searchBitmap2(BITMAP_DADOS, 0);
+	if (inodeNumber == -1)
+	{
+		printf("ERROR: There is no space left to create a new inode.\n");
+		return -1;
+	}
+	else if (blockNum == -1)
+	{
+		printf("ERROR: There is no space left to allocate a new block.\n");
+		return -1;
+	}
+	setBitmap2(BITMAP_INODE, inodeNumber, 1);
 	setBitmap2(BITMAP_DADOS, blockNum, 1);
 
+	// Copy information to the new record
+	strcpy(record.name, filename);
+	record.TypeVal = TYPEVAL_REGULAR;
+	record.inodeNumber = inodeNumber;
+
+	// Compute where we will save the new record
+	DWORD newRecordBlock = (inodeNumber - 1) / (getBlocksize() / sizeof(RECORD));
+	DWORD newRecordSector = ((inodeNumber - 1) / (SECTOR_SIZE / sizeof(RECORD))) % getSuperblock()->blockSize;
+	DWORD newRecordSectorOffset = dirInode->bytesFileSize % SECTOR_SIZE;
+
+	// Save it
 	BYTE *record_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
 	if (readDataBlockSector(newRecordBlock, newRecordSector, dirInode, (BYTE *)record_buffer) != 0)
 	{
-			printf("ERROR: Failed reading record\n");
-			return -1;
+		printf("ERROR: Failed reading record\n");
+		return -1;
 	}
 	memcpy(record_buffer + newRecordSectorOffset, &record, sizeof(RECORD));
-
-
-	if(writeDataBlockSector(newRecordBlock, newRecordSector, dirInode, (BYTE *)record_buffer) != 0)
+	if (writeDataBlockSector(newRecordBlock, newRecordSector, dirInode, (BYTE *)record_buffer) != 0)
 	{
-			printf("ERROR: Failed writing record\n");
-			return -1;
+		printf("ERROR: Failed writing record\n");
+		return -1;
 	}
 
-	setBitmap2(BITMAP_INODE, inodeNumber, 1);
+	//
+	//
+	//
+	// CERTO ATÉ AQUI
+
+	// Compute where we will save the inode
 	DWORD inodeSector = (inodeNumber * sizeof(I_NODE)) / (SECTOR_SIZE / sizeof(I_NODE));
 	DWORD inodeSectorOffset = (inodeNumber * sizeof(I_NODE)) % (SECTOR_SIZE / sizeof(I_NODE));
 
-	BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
+	// Create and save inode
 	I_NODE inode = {(DWORD)1, (DWORD)0, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
-	if(read_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode)!= 0)
+	BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
+	if (read_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode) != 0)
 	{
-			printf("ERROR: Failed reading record\n");
-			return -1;
+		printf("ERROR: Failed reading record\n");
+		return -1;
 	}
-
 	memcpy(buffer_inode + inodeSectorOffset, &inode, sizeof(I_NODE));
-
-	if(write_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode)!= 0)
+	if (write_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode) != 0)
 	{
-			printf("ERROR: Failed writing record\n");
-			return -1;
+		printf("ERROR: Failed writing record\n");
+		return -1;
 	}
 
+	// We check if we need to update the direntry inode
+	if (inodeNumber > filesQuantity)
+	{
+		dirInode->bytesFileSize += sizeof(RECORD);
+
+		// Need to create a new block for the directory
+		if (dirInode->bytesFileSize % getBlocksize() == 0)
+		{
+			printf("DEBUG: Will allocate new block for dir entries.\n");
+			dirInode->blocksFileSize++;
+			DWORD newBlock = searchBitmap2(BITMAP_DADOS, 0);
+			if (newBlock == -1)
+			{
+				printf("There is no space left to create a new directory entry.\n");
+				return -1;
+			}
+			setBitmap2(BITMAP_DADOS, newBlock, 1);
+
+			DWORD direct_quantity = getInodeDirectQuantity();
+			DWORD simple_indirect_quantity = getInodeSimpleIndirectQuantity();
+			DWORD double_indirect_quantity = getInodeDoubleIndirectQuantity();
+
+			// Second block
+			if (dirInode->blocksFileSize == direct_quantity)
+			{
+				dirInode->dataPtr[1] = newBlock;
+			}
+			else if (dirInode->blocksFileSize == direct_quantity + 1)
+			// Need to allocate a block for the simple indirection
+			{
+				DWORD newSimpleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
+				if (newSimpleIndirectionBlock == -1)
+				{
+					printf("There is no space left to create a new directory entry.\n");
+					return -1;
+				}
+				dirInode->singleIndPtr = newSimpleIndirectionBlock;
+				BYTE *simple_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
+				memcpy(simple_ind_buffer, &newBlock, sizeof(newBlock));
+				if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + dirInode->singleIndPtr * getSuperblock()->blockSize, simple_ind_buffer) != 0)
+				{
+					printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
+					return -1;
+				}
+			}
+			else if (dirInode->blocksFileSize <= direct_quantity + simple_indirect_quantity) // Middle single indirection block
+			{
+				BYTE *simple_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
+				if (read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + dirInode->singleIndPtr * getSuperblock()->blockSize, simple_ind_buffer) != 0)
+				{
+					printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
+					return -1;
+				}
+				memcpy(simple_ind_buffer + (dirInode->blocksFileSize - direct_quantity - 1) * sizeof(newBlock), &newBlock, sizeof(newBlock));
+				if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + dirInode->singleIndPtr * getSuperblock()->blockSize, simple_ind_buffer) != 0)
+				{
+					printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
+					return -1;
+				}
+			}
+			else if (dirInode->blocksFileSize == direct_quantity + simple_indirect_quantity + 1) // TODO: Need to allocate blocks for the double indirection
+			{
+			}
+			else // TODO: Check if we need to allocate a block in the middle of a doubleIndirection
+			{
+			}
+		}
+
+		BYTE *dir_inode_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
+		if (read_sector(getInodesFirstSector(getPartition(), getSuperblock()), dir_inode_buffer) != 0)
+		{
+			printf("ERROR: There was an error while trying to create a new directory entry.\n");
+			return -1;
+		}
+		memcpy(dir_inode_buffer, dirInode, sizeof(I_NODE));
+		if (write_sector(getInodesFirstSector(getPartition(), getSuperblock()), dir_inode_buffer) != 0)
+		{
+			printf("ERROR: There was an error while trying to create a new directory entry.\n");
+			return -1;
+		}
+	}
+
+	// Free dynamically allocated memory
 	free(record_buffer);
 	free(buffer_inode);
 	free(dirInode);
+
+	// Remember to close the opened bitmap
 	closeBitmap2();
 
+	// Return a handler to this file
 	return open2(filename);
 }
-
 
 /*-----------------------------------------------------------------------------
 Função:	Função usada para remover (apagar) um arquivo do disco.
