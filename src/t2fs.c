@@ -186,14 +186,9 @@ FILE2 create2(char *filename)
 		return -1;
 	}
 
-	//
-	//
-	//
-	// CERTO ATÉ AQUI
-
 	// Compute where we will save the inode
-	DWORD inodeSector = (inodeNumber * sizeof(I_NODE)) / (SECTOR_SIZE / sizeof(I_NODE));
-	DWORD inodeSectorOffset = (inodeNumber * sizeof(I_NODE)) % (SECTOR_SIZE / sizeof(I_NODE));
+	DWORD inodeSector = inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
+	DWORD inodeSectorOffset = (inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
 
 	// Create and save inode
 	I_NODE inode = {(DWORD)1, (DWORD)0, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
@@ -407,7 +402,7 @@ int readdir2(DIRENT2 *dentry)
 	nextDirectoryEntry();
 
 	// If read an invalid record, go to the next
-	if (record.TypeVal != TYPEVAL_INVALIDO)
+	if (record.TypeVal == TYPEVAL_INVALIDO)
 		return readdir2(dentry);
 
 	// Copy the record information to the `DIRENT2` structure
