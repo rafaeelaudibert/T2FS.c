@@ -107,10 +107,10 @@ DWORD getInodesFirstSector(PARTITION *, SUPERBLOCK *);
 DWORD getDataBlocksFirstSector(PARTITION *, SUPERBLOCK *);
 
 // Checks if a partition is already mounted
-BOOL notMountedPartition();
+BOOL isPartitionMounted();
 
 // Checks if the root folder "\\" is already opened
-BOOL notRootOpened();
+BOOL isRootOpened();
 
 // Returns a `MBR` pointer to the disk MBR
 MBR *getMBR();

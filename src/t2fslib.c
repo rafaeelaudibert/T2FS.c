@@ -309,7 +309,6 @@ inline void openRoot()
 
 inline void closeRoot()
 {
-
     rootOpened = FALSE;
 
     return;
@@ -356,26 +355,26 @@ inline DWORD getDataBlocksFirstSector(PARTITION *p, SUPERBLOCK *sb)
 /*
 	Helper functions when initializing the library
 */
-inline BOOL notMountedPartition()
+inline BOOL isPartitionMounted()
 {
     if (superblock == NULL)
     {
         printf("ERROR: There is no mounted partition. Please mount it first.\n");
-        return TRUE;
+        return FALSE;
     }
 
-    return FALSE;
+    return TRUE;
 }
 
-inline BOOL notRootOpened()
+inline BOOL isRootOpened()
 {
     if (!rootOpened)
     {
-        printf("ERROR: You must open the root directory before running this function.");
-        return TRUE;
+        printf("ERROR: You must open the root directory.");
+        return FALSE;
     }
 
-    return FALSE;
+    return TRUE;
 }
 
 /* Getters */

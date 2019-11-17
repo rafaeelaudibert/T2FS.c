@@ -112,9 +112,7 @@ Função:	Função usada para criar um novo arquivo no disco e abrí-lo,
 FILE2 create2(char *filename)
 {
 	initialize();
-	if (notMountedPartition())
-		return -1;
-	if (notRootOpened())
+	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
 	return -9;
@@ -126,9 +124,7 @@ Função:	Função usada para remover (apagar) um arquivo do disco.
 int delete2(char *filename)
 {
 	initialize();
-	if (notMountedPartition())
-		return -1;
-	if (notRootOpened())
+	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
 	return -9;
@@ -140,9 +136,7 @@ Função:	Função que abre um arquivo existente no disco.
 FILE2 open2(char *filename)
 {
 	initialize();
-	if (notMountedPartition())
-		return -1;
-	if (notRootOpened())
+	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
 	return -9;
@@ -153,9 +147,7 @@ Função:	Função usada para fechar um arquivo.
 -----------------------------------------------------------------------------*/
 int close2(FILE2 handle)
 {
-	if (notMountedPartition())
-		return -1;
-	if (notRootOpened())
+	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
 	return -9;
@@ -168,9 +160,7 @@ Função:	Função usada para realizar a leitura de uma certa quantidade
 int read2(FILE2 handle, char *buffer, int size)
 {
 	initialize();
-	if (notMountedPartition())
-		return -1;
-	if (notRootOpened())
+	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
 	return -9;
@@ -183,9 +173,7 @@ Função:	Função usada para realizar a escrita de uma certa quantidade
 int write2(FILE2 handle, char *buffer, int size)
 {
 	initialize();
-	if (notMountedPartition())
-		return -1;
-	if (notRootOpened())
+	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
 	return -9;
@@ -200,7 +188,7 @@ Função:	Função que abre um diretório existente no disco.
 int opendir2(void)
 {
 	initialize();
-	if (notMountedPartition())
+	if (!isPartitionMounted())
 		return -1;
 
 	openRoot();
@@ -214,18 +202,14 @@ Função:	Função usada para ler as entradas de um diretório.
 int readdir2(DIRENT2 *dentry)
 {
 	initialize();
-	if (notMountedPartition())
+	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
-	if (notRootOpened())
-		return -1;
-
-	PARTITION *partition = getPartition();
-	I_NODE *rootFolderInode = getInode(0);
 
 	// Check if we already finished reading the entries
-	if (finishedEntries(rootFolderInode))
+	if (finishedEntries(getInode(0)))
 		return -1;
 
+	// Try to read the record
 	RECORD record;
 	if (getRecordByNumber(getCurrentDirectoryEntryIndex(), &record) != 0)
 	{
@@ -233,10 +217,12 @@ int readdir2(DIRENT2 *dentry)
 		return -1;
 	};
 
+	// Copy the record information to the `DIRENT2` structure
 	memcpy(dentry->name, record.name, sizeof(BYTE) * 51);
 	dentry->fileType = record.TypeVal;
 	dentry->fileSize = getInode(record.inodeNumber)->bytesFileSize;
 
+	// Update to the next directory entry for the next function call
 	nextDirectoryEntry();
 
 	return 0;
@@ -248,7 +234,7 @@ Função:	Função usada para fechar um diretório.
 int closedir2(void)
 {
 	initialize();
-	if (notMountedPartition())
+	if (!isPartitionMounted())
 		return -1;
 
 	closeRoot();
@@ -262,9 +248,7 @@ Função:	Função usada para criar um caminho alternativo (softlink)
 int sln2(char *linkname, char *filename)
 {
 	initialize();
-	if (notMountedPartition())
-		return -1;
-	if (notRootOpened())
+	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
 	return -9;
@@ -276,9 +260,7 @@ Função:	Função usada para criar um caminho alternativo (hardlink)
 int hln2(char *linkname, char *filename)
 {
 	initialize();
-	if (notMountedPartition())
-		return -1;
-	if (notRootOpened())
+	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
 	return -9;
