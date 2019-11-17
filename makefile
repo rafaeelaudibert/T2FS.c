@@ -40,8 +40,7 @@
 #
 
 CC=gcc -c
-# CFLAGS= -lm -Wall -Wextra -O2 -Wunreachable-code -Wuninitialized -Winit-self -std=gnu99
-CFLAGS= -lm -O2 -std=gnu99
+CFLAGS= -lm -Wall -Wextra -O2 -Wunreachable-code -Wuninitialized -Winit-self -std=gnu99
 LIB_DIR=./lib
 INC_DIR=./include
 BIN_DIR=./bin
