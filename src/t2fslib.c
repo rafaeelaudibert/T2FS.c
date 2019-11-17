@@ -405,6 +405,12 @@ inline int getBlocksize()
 
 int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE *buffer)
 {
+    // Doesn't try to access not existent blocks
+    if (block_number >= inode->blocksFileSize)
+    {
+        printf("ERROR: Trying to acess not existent block");
+        return -1;
+    }
 
     DWORD direct_quantity = getInodeDirectQuantity();
     DWORD simple_indirect_quantity = getInodeSimpleIndirectQuantity();
