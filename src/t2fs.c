@@ -288,13 +288,17 @@ int readdir2(DIRENT2 *dentry)
 		return -1;
 	};
 
+	// Update to the next directory entry for the next function call
+	nextDirectoryEntry();
+
+	// If read an invalid record, go to the next
+	if (record.TypeVal != TYPEVAL_INVALIDO)
+		return readdir2(dentry);
+
 	// Copy the record information to the `DIRENT2` structure
 	memcpy(dentry->name, record.name, sizeof(BYTE) * 51);
 	dentry->fileType = record.TypeVal;
 	dentry->fileSize = getInode(record.inodeNumber)->bytesFileSize;
-
-	// Update to the next directory entry for the next function call
-	nextDirectoryEntry();
 
 	return 0;
 }

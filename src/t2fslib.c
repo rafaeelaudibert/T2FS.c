@@ -316,7 +316,7 @@ inline void closeRoot()
 
 inline BOOL finishedEntries(I_NODE *inode)
 {
-    return rootFolderFileIndex * sizeof(DWORD) >= inode->bytesFileSize;
+    return rootFolderFileIndex * sizeof(RECORD) >= inode->bytesFileSize;
 }
 
 /*
