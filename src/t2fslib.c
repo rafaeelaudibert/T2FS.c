@@ -75,8 +75,8 @@ int formatPartition(int partition_number, int sectors_per_block)
 {
     PARTITION partition = mbr->partitions[partition_number];
     SUPERBLOCK sb;
-    BYTE *buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
-    BYTE *zeroed_buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
+    BYTE *buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
+    BYTE *zeroed_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
 
     // Calcula variáveis auxiliares
     DWORD sectorQuantity = partition.lastSector - partition.firstSector + 1;
@@ -98,7 +98,8 @@ int formatPartition(int partition_number, int sectors_per_block)
     printf("inodeBitmapSizeInBlocks: %u\n", inodeBitmapSizeInBlocks);
 
     // Preenche super block
-    strncpy(sb.id, "T2FS", 4);
+    BYTE superblock_id[] = "T2FS";
+    memcpy(sb.id, superblock_id, 4);
     sb.version = (WORD)0x7E32;
     sb.superblockSize = (WORD)1;
     sb.freeBlocksBitmapSize = (WORD)inodeBitmapSizeInBlocks;
@@ -200,7 +201,7 @@ int createRootFolder(int partition_number)
     }
 
     // Read superblock of the partition to sb
-    BYTE *buffer = (BYTE *)malloc(sizeof(BYTE) * SECTOR_SIZE);
+    BYTE *buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
     if (read_sector(partition.firstSector, (BYTE *)buffer) != 0)
     {
         printf("ERROR: Failed reading superblock of partition %d\n", partition_number);
@@ -209,7 +210,7 @@ int createRootFolder(int partition_number)
     memcpy(&sb, buffer, sizeof(sb));
 
     // Create inode and mark it on the bitmap, automatically pointing to the first entry in the data block
-    BYTE *inode_buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
+    BYTE *inode_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
     I_NODE inode = {(DWORD)1, (DWORD)0, {(DWORD)0, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
     memcpy(inode_buffer, &inode, sizeof(inode));
     if (write_sector(getInodesFirstSector(&partition, &sb), inode_buffer) != 0)
@@ -237,7 +238,7 @@ int createRootFolder(int partition_number)
 
     // Create folder data block, emptied
     printf("Will write root folder first data block on sector %d.\n", getDataBlocksFirstSector(&partition, &sb));
-    BYTE *data_buffer = (BYTE *)calloc(SECTOR_SIZE, sizeof(BYTE));
+    BYTE *data_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
     for (int i = 0; i < sb.blockSize; ++i)
     {
         if (write_sector(getDataBlocksFirstSector(&partition, &sb) + i, data_buffer) != 0)
