@@ -8,9 +8,20 @@
 #define TRUE 1
 #define FALSE 0
 
+#define RECORD_PER_SECTOR 4
+#define	INVALID_PTR	0
+#define PTR_SIZE 4
+#define PTR_PER_SECTOR 64
+#define BLOCK_SIZE superblock->blockSize
+#define	SECTOR_SIZE	256
+#define RECORD_SIZE 64
+#define INODE_SIZE 32
+#define INODE_PER_SECTOR 8
+
 typedef struct t2fs_superbloco SUPERBLOCK;
 typedef struct t2fs_record RECORD;
 typedef struct t2fs_inode I_NODE;
+
 
 /*
 
@@ -130,6 +141,11 @@ int getBlocksize();
 // identified by the inode `inode`.
 // The sector information is copied to the `buffer` pointer.
 int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE *buffer);
+
+// Writes to the sector `sector_number` from the block `block_number` from a file
+// identified by the inode `inode`.
+// The sector information is copied from the `write_buffer` pointer.
+int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE *write_buffer);
 
 // Returns a newly allocated buffer, with size `size` (similar to malloc)
 BYTE *getBuffer(size_t size);
