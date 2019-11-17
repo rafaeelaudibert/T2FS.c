@@ -34,7 +34,7 @@ int format2(int partition, int sectors_per_block)
 	// TODO: Remove this line
 	unmount(); // Unmount temporarily, for testing in the shell
 
-	if (partition >= (int)(getMBR()->partitionQuantity))
+		if (partition >= (int)(getMBR()->partitionQuantity))
 	{
 		printf("ERROR: There is no partition %d in disk.\n", partition);
 		return -1;
@@ -54,6 +54,7 @@ int format2(int partition, int sectors_per_block)
 
 	// TODO: Remove this line
 	mount(partition); // Mount temporarily, for testing in the shell
+	opendir2();
 
 	return 0;
 }
@@ -109,14 +110,84 @@ Função:	Função usada para criar um novo arquivo no disco e abrí-lo,
 		arquivo já existente, o mesmo terá seu conteúdo removido e
 		assumirá um tamanho de zero bytes.
 -----------------------------------------------------------------------------*/
+
 FILE2 create2(char *filename)
 {
+
 	initialize();
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
-	return -9;
+	I_NODE *dirInode = getInode(0);
+	RECORD record;
+	RECORD newRecord;
+
+	int filesQuantity = dirInode->bytesFileSize/RECORD_SIZE;
+
+	for (int i= 0; i<filesQuantity; i ++){
+		getRecordByNumber(i, &record);
+		if(strcmp(record.name, filename) == 0){
+			//delete
+		}
+	}
+
+	openBitmap2(getPartition()->firstSector);
+
+	DWORD newRecordBlock = dirInode->bytesFileSize / getBlocksize();
+	DWORD newRecordSector = dirInode->bytesFileSize / SECTOR_SIZE;
+	newRecordSector = (newRecordSector) / getSuperblock()->blockSize;
+	DWORD newRecordSectorOffset = newRecordSector % getSuperblock()->blockSize;
+
+	strcpy(record.name, filename);
+	record.TypeVal = TYPEVAL_REGULAR;
+	DWORD inodeNumber = searchBitmap2(BITMAP_INODE, 0);
+	record.inodeNumber = inodeNumber;
+	DWORD blockNum = searchBitmap2(BITMAP_DADOS, 0);
+	setBitmap2(BITMAP_DADOS, blockNum, 1);
+
+	BYTE *record_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
+	if (readDataBlockSector(newRecordBlock, newRecordSector, dirInode, (BYTE *)record_buffer) != 0)
+	{
+			printf("ERROR: Failed reading record\n");
+			return -1;
+	}
+	memcpy(record_buffer + newRecordSectorOffset, &record, sizeof(RECORD));
+
+
+	if(writeDataBlockSector(newRecordBlock, newRecordSector, dirInode, (BYTE *)record_buffer) != 0)
+	{
+			printf("ERROR: Failed writing record\n");
+			return -1;
+	}
+
+	setBitmap2(BITMAP_INODE, inodeNumber, 1);
+	DWORD inodeSector = (inodeNumber * sizeof(I_NODE)) / (SECTOR_SIZE / sizeof(I_NODE));
+	DWORD inodeSectorOffset = (inodeNumber * sizeof(I_NODE)) % (SECTOR_SIZE / sizeof(I_NODE));
+
+	BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
+	I_NODE inode = {(DWORD)1, (DWORD)0, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
+	if(read_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode)!= 0)
+	{
+			printf("ERROR: Failed reading record\n");
+			return -1;
+	}
+
+	memcpy(buffer_inode + inodeSectorOffset, &inode, sizeof(I_NODE));
+
+	if(write_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode)!= 0)
+	{
+			printf("ERROR: Failed writing record\n");
+			return -1;
+	}
+
+	free(record_buffer);
+	free(buffer_inode);
+	free(dirInode);
+	closeBitmap2();
+
+	return open2(filename);
 }
+
 
 /*-----------------------------------------------------------------------------
 Função:	Função usada para remover (apagar) um arquivo do disco.
