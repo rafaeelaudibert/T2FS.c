@@ -9,11 +9,11 @@
 #define FALSE 0
 
 #define RECORD_PER_SECTOR 4
-#define	INVALID_PTR	0
+#define INVALID_PTR 0
 #define PTR_SIZE 4
 #define PTR_PER_SECTOR 64
 #define BLOCK_SIZE superblock->blockSize
-#define	SECTOR_SIZE	256
+#define SECTOR_SIZE 256
 #define RECORD_SIZE 64
 #define INODE_SIZE 32
 #define INODE_PER_SECTOR 8
@@ -21,7 +21,6 @@
 typedef struct t2fs_superbloco SUPERBLOCK;
 typedef struct t2fs_record RECORD;
 typedef struct t2fs_inode I_NODE;
-
 
 /*
 
