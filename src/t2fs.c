@@ -15,6 +15,7 @@ Função:	Informa a identificação dos desenvolvedores do T2FS.
 int identify2(char *name, int size)
 {
 	initialize();
+	mount(0);
 
 	BYTE identification[] = "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695";
 	memcpy(name, identification, size);
@@ -112,10 +113,78 @@ Função:	Função usada para criar um novo arquivo no disco e abrí-lo,
 FILE2 create2(char *filename)
 {
 	initialize();
+	opendir2();
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
-	return -9;
+	I_NODE *root_inode = getInode(0);
+	RECORD record;
+	I_NODE file_inode;
+	I_NODE *directory_inode;
+	BYTE *buffer;
+	BYTE *folder_buffer;
+	char name[10];
+	char numstr[5];
+
+	for(int counter = 1; counter <= 4; counter++){
+		strcpy(name, filename);
+		printf("chegou %d\n", counter);
+		snprintf(numstr, sizeof(numstr), "%d",counter);
+		strcat(name, numstr);
+		strcpy(record.name, name);
+		printf("chegou2 %d\n", counter);
+		printf("%s\n", record.name);
+
+		record.TypeVal = 0x01;
+		record.inodeNumber = counter;
+		file_inode.blocksFileSize = 1;
+		file_inode.bytesFileSize = 0;
+		file_inode.dataPtr[0] = counter;
+		file_inode.dataPtr[1] = 0;
+		file_inode.singleIndPtr = 0;
+		file_inode.doubleIndPtr = 0;
+		file_inode.RefCounter = 1;
+
+		printf("chegou3 data %d %d\n", file_inode.dataPtr[0], file_inode.dataPtr[1]);
+		openBitmap2(getPartition()->firstSector);
+
+		setBitmap2(BITMAP_INODE, counter, 1);
+		setBitmap2(BITMAP_DADOS, counter, 1);
+
+		//writing inodes
+		directory_inode = getInode(0);
+		directory_inode->bytesFileSize = sizeof(record)*counter;
+		buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
+		read_sector(getInodesFirstSector(getPartition(), getSuperblock()), buffer);
+		memcpy(buffer, directory_inode, sizeof(I_NODE));
+		printf("chegou4 %d\n", counter);
+
+		memcpy(buffer + counter*sizeof(I_NODE), &file_inode, sizeof(I_NODE));
+		write_sector(getInodesFirstSector(getPartition(), getSuperblock()), buffer);
+
+		folder_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
+		printf("chegou5 %d\n", counter);
+
+		if(counter > 4){
+			read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + directory_inode->dataPtr[1]*getSuperblock()->blockSize, folder_buffer);
+			printf("chegou44 %d\n", counter);
+			memcpy(folder_buffer+sizeof(RECORD)*(counter-1), &record, sizeof(RECORD));
+			printf("chegou44 %d\n", counter);
+			write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + directory_inode->dataPtr[1]*getSuperblock()->blockSize, folder_buffer);
+			printf("chegou44 %d\n", counter);
+		} else {
+			read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + directory_inode->dataPtr[0]*getSuperblock()->blockSize, folder_buffer);
+			printf("chegou00 %d\n", counter);
+			memcpy(folder_buffer+sizeof(RECORD)*(counter-1), &record, sizeof(RECORD));
+			printf("chegou00 %d\n", counter);
+			write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + directory_inode->dataPtr[0]*getSuperblock()->blockSize, folder_buffer);
+			printf("chegou00 %d\n", counter);
+		}
+		closeBitmap2();
+
+	}
+
+	return open2("hue1");
 }
 
 /*-----------------------------------------------------------------------------
@@ -206,8 +275,10 @@ int readdir2(DIRENT2 *dentry)
 		return -1;
 
 	// Check if we already finished reading the entries
-	if (finishedEntries(getInode(0)))
+	if (finishedEntries(getInode(0))){
+		printf("Finished\n");
 		return -1;
+	}
 
 	// Try to read the record
 	RECORD record;

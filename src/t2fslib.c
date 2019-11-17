@@ -316,7 +316,9 @@ inline void closeRoot()
 
 inline BOOL finishedEntries(I_NODE *inode)
 {
-    return rootFolderFileIndex * sizeof(DWORD) >= inode->bytesFileSize;
+    //printf("%d\n", (int)rootFolderFileIndex * sizeof(RECORD));
+    //printf("%d\n", (int)inode->bytesFileSize);
+    return rootFolderFileIndex * sizeof(RECORD) >= inode->bytesFileSize;
 }
 
 /*
@@ -413,12 +415,18 @@ int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE
     }
 
     DWORD direct_quantity = getInodeDirectQuantity();
+    //printf("Direct %d\n", direct_quantity);
     DWORD simple_indirect_quantity = getInodeSimpleIndirectQuantity();
+    //printf("Indirect %d\n", simple_indirect_quantity);
     DWORD double_indirect_quantity = getInodeDoubleIndirectQuantity();
+    //printf("Douindirect %d\n", double_indirect_quantity);
 
     DWORD double_ind_sector = inode->doubleIndPtr * getSuperblock()->blockSize;
+    //printf("DouindirectSec %d\n", double_ind_sector);
     DWORD simple_ind_sector = inode->singleIndPtr * getSuperblock()->blockSize;
+    //printf("SimindirectSec %d\n", simple_ind_sector);
     DWORD no_ind_sector = inode->dataPtr[block_number > 2 ? 0 : block_number] * getSuperblock()->blockSize; // We fill with a 0 in the default case, because it will be filled later
+    //printf("DirectSec %d\n", no_ind_sector);
 
     if (block_number >= direct_quantity + simple_indirect_quantity)
     {
