@@ -14,3 +14,9 @@ lib/*.a
 
 # Ignore log files
 *.log
+
+# Ignore data files
+*.dat
+
+# Ignore t2shell bin file
+exemplo/t2shell
