@@ -609,6 +609,21 @@ int getRecordByNumber(int number, RECORD *record)
     return 0;
 }
 
+int getPointers(DWORD blockNumber, DWORD *pointers){
+	unsigned char buffer[SECTOR_SIZE];
+	int i, j;
+
+	for(i = 0; i < getSuperblock()->blockSize; i++){ // For all sector of block
+		int sectorNumber = blockNumber*getSuperblock()->blockSize + i;
+		read_sector(sectorNumber, buffer);
+		for(j = 0; j < PTR_PER_SECTOR; j++){  // For all record of sector
+			pointers[j + i*PTR_PER_SECTOR] = *((DWORD*)(buffer + j*PTR_SIZE));
+		}
+	}
+	return 0;
+}
+
+
 // iNodePointersQuantities
 inline DWORD getInodeDirectQuantity()
 {

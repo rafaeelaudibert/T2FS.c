@@ -135,7 +135,7 @@ FILE2 create2(char *filename)
 	for (int i = 0; i < filesQuantity; i++)
 	{
 		getRecordByNumber(i, &record);
-		if (strcmp(record.name, filename) == 0)
+		if ((strcmp(record.name, filename) == 0) && (record.TypeVal != TYPEVAL_INVALIDO))
 		{
 			if (delete2(filename) != 0)
 			{
@@ -172,9 +172,9 @@ FILE2 create2(char *filename)
 	DWORD newRecordSector = dirInode->bytesFileSize % getBlocksize() / SECTOR_SIZE;
 	DWORD newRecordSectorOffset = dirInode->bytesFileSize % SECTOR_SIZE;
 
-	printf("record block %d\n", newRecordBlock);
-	printf("recordSector %d\n", newRecordSector);
-	printf("recordSectorOffset %d\n", newRecordSectorOffset);
+	// printf("record block %d\n", newRecordBlock);
+	// printf("recordSector %d\n", newRecordSector);
+	// printf("recordSectorOffset %d\n", newRecordSectorOffset);
 
 	// Save it
 	BYTE *record_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
@@ -440,7 +440,7 @@ int delete2(char *filename)
 	for (int i = 0; i < filesQuantity; i++)
 	{
 		getRecordByNumber(i, recordAux);
-		if ((strcmp(recordAux->name, filename) == 0) && (record->TypeVal != TYPEVAL_INVALIDO))
+		if ((strcmp(recordAux->name, filename) == 0) && (recordAux->TypeVal != TYPEVAL_INVALIDO))
 			{
 				record = recordAux;
 				break;
@@ -462,10 +462,10 @@ int delete2(char *filename)
 	DWORD recordBlock = dirInode->bytesFileSize / getBlocksize();
 	DWORD recordSector = dirInode->bytesFileSize % getBlocksize() / SECTOR_SIZE;
 	DWORD recordSectorOffset = bytesFileSizeUntilRecord % SECTOR_SIZE;
-
-	printf("record block %d\n", recordBlock);
-	printf("recordSector %d\n", recordSector);
-	printf("recordSectorOffset %d\n", recordSectorOffset);
+	//
+	// printf("record block %d\n", recordBlock);
+	// printf("recordSector %d\n", recordSector);
+	// printf("recordSectorOffset %d\n", recordSectorOffset);
 
 	// Save it
 	BYTE *record_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
@@ -515,7 +515,53 @@ int delete2(char *filename)
 
 
 
+	int i, j;
+	DWORD pointers[PTR_PER_SECTOR*getBlocksize()];
+	DWORD doublePointers[PTR_PER_SECTOR*getBlocksize()];
 
+	if(inode->dataPtr[0] != INVALID_PTR){
+		setBitmap2(BITMAP_DADOS, inode->dataPtr[0], 0);
+	}
+
+	if(inode->dataPtr[1] != INVALID_PTR){
+		setBitmap2(BITMAP_DADOS, inode->dataPtr[1], 0);
+	}
+
+	if(inode->singleIndPtr != INVALID_PTR){
+		getPointers(inode->singleIndPtr, pointers);
+		for(i = 0; i < PTR_PER_SECTOR*getBlocksize(); i++){
+			if(pointers[i] != INVALID_PTR){
+				setBitmap2(BITMAP_DADOS, pointers[i], 0);
+			}
+		}
+	}
+
+	// Indireção Dupla
+	if(inode->doubleIndPtr != INVALID_PTR){
+		getPointers(dirInode->doubleIndPtr, doublePointers);
+		for(j = 0; j < PTR_PER_SECTOR*getBlocksize(); j++){
+			if(doublePointers[j] != INVALID_PTR){
+				getPointers(doublePointers[j], pointers);
+				for(i = 0; i < PTR_PER_SECTOR*getBlocksize(); i++){
+					if(pointers[i] != INVALID_PTR){
+						setBitmap2(BITMAP_DADOS, pointers[i], 0);
+					}
+				}
+			}
+		}
+	}
+
+	//Clear the inode bitmap
+	setBitmap2(BITMAP_INODE, record->inodeNumber, 0);
+
+	// Free dynamically allocated memory
+	// free(record_buffer);
+	// free(dirInode);
+	// free(record);
+	// free(recordAux);
+
+	// Remember to close the opened bitmap
+	closeBitmap2();
 
 	return -9;
 }
