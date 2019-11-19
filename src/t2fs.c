@@ -121,7 +121,7 @@ FILE2 create2(char *filename)
 	// TODO: Remove this line later on
 	opendir2();
 
-	if (!isPartitionMounted() || !isRootOpened())
+	if (!isPartitionMounted() || !isRootOpened() || strlen(filename) > 50)
 		return -1;
 
 	// Configure bitmap
@@ -554,17 +554,19 @@ Função:	Função usada para criar um caminho alternativo (softlink)
 -----------------------------------------------------------------------------*/
 int sln2(char *linkname, char *filename)
 {
+	printf("strlen3 %d \n", strlen(linkname));
 
 	initialize();
 
 	// TODO: Remove this line later on
 	opendir2();
 
-	if (!isPartitionMounted() || !isRootOpened())
+	if (!isPartitionMounted() || !isRootOpened() || strlen(linkname) > 50 || strlen(filename) > 50)
 		return -1;
 
 	// Configure bitmap
 	openBitmap2(getPartition()->firstSector);
+	printf("hue \n");
 
 	I_NODE *dirInode = getInode(0);
 	RECORD record;
@@ -580,6 +582,7 @@ int sln2(char *linkname, char *filename)
 			return -1;
 		}
 	}
+	printf("hue \n");
 
 	// Fetch and set bitmaps info
 	int inodeNumber = searchBitmap2(BITMAP_INODE, 0);
@@ -597,6 +600,8 @@ int sln2(char *linkname, char *filename)
 	setBitmap2(BITMAP_INODE, inodeNumber, 1);
 	setBitmap2(BITMAP_DADOS, blockNum, 1);
 
+	printf("hue \n");
+
 	// Copy information to the new record
 	strcpy(record.name, linkname);
 	record.TypeVal = TYPEVAL_LINK;
@@ -606,6 +611,7 @@ int sln2(char *linkname, char *filename)
 	DWORD newRecordBlock = dirInode->bytesFileSize / getBlocksize();
 	DWORD newRecordSector = dirInode->bytesFileSize % getBlocksize() / SECTOR_SIZE;
 	DWORD newRecordSectorOffset = dirInode->bytesFileSize % SECTOR_SIZE;
+	printf("hue \n");
 
 	// Save it
 	BYTE *record_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
@@ -625,9 +631,10 @@ int sln2(char *linkname, char *filename)
 	// Compute where we will save the inode
 	int inodeSector = inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
 	int inodeSectorOffset = (inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
+	printf("hue \n");
 
 	// Create and save inode
-	I_NODE inode = {(DWORD)1, (DWORD)50, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
+	I_NODE inode = {(DWORD)1, 60, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
 	BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
 	if (read_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode) != 0)
 	{
@@ -649,6 +656,7 @@ int sln2(char *linkname, char *filename)
 	{
 		printf("DEBUG: Will allocate new block for dir entries.\n");
 		dirInode->blocksFileSize++;
+		printf("hue \n");
 
 		DWORD newBlock = searchBitmap2(BITMAP_DADOS, 0);
 		if (newBlock == -1)
@@ -831,22 +839,28 @@ int sln2(char *linkname, char *filename)
 		return -1;
 	}
 
+	printf("hue \n");
+
 	//Encontra o inode:
 	I_NODE *fileInode = getInode(inodeNumber);
 	DWORD fileBlock = fileInode->dataPtr[0];
-	DWORD fileSize = fileInode->bytesFileSize;
 
 	//TODO REMOVE--------------------------------------------------------
+	DWORD fileSize = fileInode->bytesFileSize;
+
 	printf("File Inode Number: %d\n", inodeNumber);
 	printf("File Inode dataPtr: %d\n", fileBlock);
 	printf("File Inode bytesFileSize: %d\n", fileSize);
 	//END TODO REMOVE---------------------------------------------------
 
+	//Copia o nome do arquivo para o buffer de escrita
 	BYTE *data_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
 	//TO-DO: Trocar pra memcpy (ou nao)
-	for (int i = 0;  i < 50; i++){
+	for (int i = 0;  i < sizeof(BYTE) * SECTOR_SIZE; i++){
 		data_buffer[i] = filename[i];
 	}
+
+	//Writes in the first block/sector of the file.
 	if (writeDataBlockSector(0, 0, fileInode, (BYTE *)data_buffer) != 0)
 	{
 		printf("ERROR: Failed writing record\n");
@@ -860,6 +874,8 @@ int sln2(char *linkname, char *filename)
 		return -1;
 	}
 	printf("Reading memory of link's inode: %s\n", data_buffer);
+	//END TODO REMOVE---------------------------------------------------
+
 
 	// Free dynamically allocated memory
 	free(record_buffer);
