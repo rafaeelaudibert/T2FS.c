@@ -440,7 +440,7 @@ int delete2(char *filename)
 	for (int i = 0; i < filesQuantity; i++)
 	{
 		getRecordByNumber(i, recordAux);
-		if (strcmp(recordAux->name, filename) == 0)
+		if ((strcmp(recordAux->name, filename) == 0) && (record->TypeVal != TYPEVAL_INVALIDO))
 			{
 				record = recordAux;
 				break;
@@ -512,6 +512,8 @@ int delete2(char *filename)
 		printf("The file was successfuly removed.\n");
 		return 0;
 	}
+
+
 
 
 
