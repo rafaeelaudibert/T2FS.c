@@ -17,10 +17,21 @@
 #define RECORD_SIZE 64
 #define INODE_SIZE 32
 #define INODE_PER_SECTOR 8
+#define MAX_OPEN_FILES 10
 
 typedef struct t2fs_superbloco SUPERBLOCK;
 typedef struct t2fs_record RECORD;
 typedef struct t2fs_inode I_NODE;
+
+// Open file structure to have a record, its inode and the position where
+// its pointer is currently located
+typedef struct
+{
+    RECORD *record;
+    I_NODE *inode;
+    DWORD file_position;
+    FILE2 handle;
+} OPEN_FILE;
 
 /*
 
@@ -61,6 +72,21 @@ int configureMountedPartition(int partition_number);
 
 // Unmount the partition currently mounted on "\\" path
 int unmountPartition();
+
+/*
+
+    FUNCTIONS USED ON CLOSE2
+
+*/
+// Return the position of a file given a handle
+int getFilePositionByHandle(FILE2 handle);
+
+// Return the position of a file given a name
+int getFilePositionByName(char *filename);
+
+// Make sure to free all the memory allocated for an open file
+// with  `handle` handle number
+int closeFile(FILE2 handle);
 
 /*
 

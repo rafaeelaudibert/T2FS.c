@@ -18,6 +18,8 @@ SUPERBLOCK *superblock = NULL;
 int mounted_partition = -1;
 BOOL rootOpened = FALSE;
 DWORD rootFolderFileIndex = 0;
+OPEN_FILE *open_files[] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+int next_open_file_handler = 0;
 
 void initialize()
 {
@@ -301,6 +303,57 @@ inline int unmountPartition()
     return 0;
 }
 
+int getFilePositionByHandle(FILE2 handle)
+{
+    int position = -1;
+
+    for (int i = 0; i < MAX_OPEN_FILES; i++)
+    {
+        if (open_files[i] != NULL && open_files[i]->handle == handle)
+        {
+            position = i;
+            break;
+        }
+    }
+
+    return position;
+}
+
+int getFilePositionByName(char *filename)
+{
+    int position = -1;
+
+    for (int i = 0; i < MAX_OPEN_FILES; i++)
+    {
+        if (open_files[i] != NULL && strcmp(open_files[i]->record->name, filename) == 0)
+        {
+            position = i;
+            break;
+        }
+    }
+
+    return position;
+}
+
+int closeFile(FILE2 handle)
+{
+    int position = getFilePositionByHandle(handle);
+
+    if (position == -1)
+    {
+        printf("ERROR: There is no open file with such a handle: %d.\n", handle);
+        return -1;
+    }
+
+    free(open_files[position]->record);
+    free(open_files[position]->inode);
+    free(open_files[position]);
+
+    open_files[position] = NULL;
+
+    return 0;
+}
+
 inline void openRoot()
 {
     rootOpened = TRUE;
@@ -372,7 +425,7 @@ inline BOOL isRootOpened()
 {
     if (!rootOpened)
     {
-        printf("ERROR: You must open the root directory.");
+        printf("ERROR: You must open the root directory.\n");
         return FALSE;
     }
 

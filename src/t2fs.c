@@ -147,8 +147,8 @@ FILE2 create2(char *filename)
 	}
 
 	// Fetch and set bitmaps info
-	DWORD inodeNumber = searchBitmap2(BITMAP_INODE, 0);
-	DWORD blockNum = searchBitmap2(BITMAP_DADOS, 0);
+	int inodeNumber = searchBitmap2(BITMAP_INODE, 0);
+	int blockNum = searchBitmap2(BITMAP_DADOS, 0);
 	if (inodeNumber == -1)
 	{
 		printf("ERROR: ERROR: There is no space left to create a new inode.\n");
@@ -187,8 +187,8 @@ FILE2 create2(char *filename)
 	}
 
 	// Compute where we will save the inode
-	DWORD inodeSector = inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
-	DWORD inodeSectorOffset = (inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
+	int inodeSector = inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
+	int inodeSectorOffset = (inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
 
 	// Create and save inode
 	I_NODE inode = {(DWORD)1, (DWORD)0, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
@@ -438,7 +438,7 @@ int close2(FILE2 handle)
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
-	return -9;
+	return closeFile(handle);
 }
 
 /*-----------------------------------------------------------------------------
