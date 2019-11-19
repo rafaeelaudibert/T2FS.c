@@ -194,6 +194,9 @@ FILE2 create2(char *filename)
 	DWORD inodeSector = inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
 	DWORD inodeSectorOffset = (inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
 
+	printf("inodeSector %d\n", inodeSector);
+	printf("inodeSectorOffset %d\n", inodeSectorOffset);
+
 	// Create and save inode
 	I_NODE inode = {(DWORD)1, (DWORD)0, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
 	BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
@@ -423,7 +426,6 @@ int delete2(char *filename)
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
-
 	// Configure bitmap
 	openBitmap2(getPartition()->firstSector);
 
@@ -483,8 +485,33 @@ int delete2(char *filename)
 	//get the inode of the record
 	I_NODE *inode = getInode(record->inodeNumber);
 
+	//updates RefCounter and test if exists any hardlink.
+	inode->RefCounter = inode->RefCounter - 1;
+	if(inode->RefCounter > 0){
 
-	//checar refcounter, se nao for zero diminuindo um, colocar record como invalido, mas inode nao excluir.
+		// Compute where the inode is
+		DWORD inodeSector = record->inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
+		DWORD inodeSectorOffset = (record->inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
+		printf("inodeSector %d\n", inodeSector);
+		printf("inodeSectorOffset %d\n", inodeSectorOffset);
+
+		// Update and save inode
+		BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
+		if (read_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode) != 0)
+		{
+			printf("ERROR: Failed reading record\n");
+			return -1;
+		}
+		memcpy(buffer_inode + inodeSectorOffset, inode, sizeof(I_NODE));
+		if (write_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode) != 0)
+		{
+			printf("ERROR: Failed writing record\n");
+			return -1;
+		}
+
+		printf("The file was successfuly removed.\n");
+		return 0;
+	}
 
 
 
