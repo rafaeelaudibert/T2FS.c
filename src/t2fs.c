@@ -214,7 +214,7 @@ FILE2 create2(char *filename)
 		printf("DEBUG: Will allocate new block for dir entries.\n");
 		dirInode->blocksFileSize++;
 
-		DWORD newBlock = searchBitmap2(BITMAP_DADOS, 0);
+		int newBlock = searchBitmap2(BITMAP_DADOS, 0);
 		if (newBlock == -1)
 		{
 			printf("ERROR: There is no space left to create a new directory entry.\n");
@@ -236,7 +236,7 @@ FILE2 create2(char *filename)
 			// Allocate block for the simple indirection block
 
 			// Find bitmap entry
-			DWORD newSimpleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
+			int newSimpleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
 			if (newSimpleIndirectionBlock == -1)
 			{
 				printf("ERROR: There is no space left to create a new directory entry.\n");
@@ -277,7 +277,7 @@ FILE2 create2(char *filename)
 		else if (dirInode->blocksFileSize == direct_quantity + simple_indirect_quantity + 1) // TODO: Need to allocate blocks for the double indirection
 		{
 			// Allocate bitmap for doubleIndirectionBlock
-			DWORD newDoubleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
+			int newDoubleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
 			if (newDoubleIndirectionBlock == -1)
 			{
 				printf("ERROR: There is no space left to create a new directory entry.\n");
@@ -291,7 +291,7 @@ FILE2 create2(char *filename)
 			dirInode->doubleIndPtr = newDoubleIndirectionBlock;
 
 			// Allocate bitmap for simpleIndirectionBlock
-			DWORD newSimpleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
+			int newSimpleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
 			if (newSimpleIndirectionBlock == -1)
 			{
 				printf("ERROR: There is no space left to create a new directory entry.\n");
@@ -322,7 +322,7 @@ FILE2 create2(char *filename)
 		else if ((dirInode->blocksFileSize - 2) % simple_indirect_quantity == 0)
 		{
 			// Allocate bitmap for simpleIndirectionBlock
-			DWORD newSimpleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
+			int newSimpleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
 			if (newSimpleIndirectionBlock == -1)
 			{
 				printf("ERROR: There is no space left to create a new directory entry.\n");
