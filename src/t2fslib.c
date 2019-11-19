@@ -623,6 +623,44 @@ int getPointers(DWORD blockNumber, DWORD *pointers){
 	return 0;
 }
 
+int clearPointers(I_NODE *inode){
+  int i, j;
+  DWORD pointers[PTR_PER_SECTOR*getBlocksize()];
+  DWORD doublePointers[PTR_PER_SECTOR*getBlocksize()];
+
+  if(inode->dataPtr[0] != INVALID_PTR){
+    setBitmap2(BITMAP_DADOS, inode->dataPtr[0], 0);
+  }
+
+  if(inode->dataPtr[1] != INVALID_PTR){
+    setBitmap2(BITMAP_DADOS, inode->dataPtr[1], 0);
+  }
+
+  if(inode->singleIndPtr != INVALID_PTR){
+    getPointers(inode->singleIndPtr, pointers);
+    for(i = 0; i < PTR_PER_SECTOR*getBlocksize(); i++){
+      if(pointers[i] != INVALID_PTR){
+        setBitmap2(BITMAP_DADOS, pointers[i], 0);
+      }
+    }
+  }
+
+  // Indireção Dupla
+  if(inode->doubleIndPtr != INVALID_PTR){
+    getPointers(inode->doubleIndPtr, doublePointers);
+    for(j = 0; j < PTR_PER_SECTOR*getBlocksize(); j++){
+      if(doublePointers[j] != INVALID_PTR){
+        getPointers(doublePointers[j], pointers);
+        for(i = 0; i < PTR_PER_SECTOR*getBlocksize(); i++){
+          if(pointers[i] != INVALID_PTR){
+            setBitmap2(BITMAP_DADOS, pointers[i], 0);
+          }
+        }
+      }
+    }
+  }
+}
+
 
 // iNodePointersQuantities
 inline DWORD getInodeDirectQuantity()

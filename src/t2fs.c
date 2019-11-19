@@ -459,13 +459,13 @@ int delete2(char *filename)
 	record->TypeVal = TYPEVAL_INVALIDO;
 
 	// Compute where is the record
-	DWORD recordBlock = dirInode->bytesFileSize / getBlocksize();
-	DWORD recordSector = dirInode->bytesFileSize % getBlocksize() / SECTOR_SIZE;
+	DWORD recordBlock = bytesFileSizeUntilRecord / getBlocksize();
+	DWORD recordSector = bytesFileSizeUntilRecord % getBlocksize() / SECTOR_SIZE;
 	DWORD recordSectorOffset = bytesFileSizeUntilRecord % SECTOR_SIZE;
-	//
-	// printf("record block %d\n", recordBlock);
-	// printf("recordSector %d\n", recordSector);
-	// printf("recordSectorOffset %d\n", recordSectorOffset);
+
+	printf("record block %d\n", recordBlock);
+	printf("recordSector %d\n", recordSector);
+	printf("recordSectorOffset %d\n", recordSectorOffset);
 
 	// Save it
 	BYTE *record_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
@@ -513,43 +513,7 @@ int delete2(char *filename)
 		return 0;
 	}
 
-
-
-	int i, j;
-	DWORD pointers[PTR_PER_SECTOR*getBlocksize()];
-	DWORD doublePointers[PTR_PER_SECTOR*getBlocksize()];
-
-	if(inode->dataPtr[0] != INVALID_PTR){
-		setBitmap2(BITMAP_DADOS, inode->dataPtr[0], 0);
-	}
-
-	if(inode->dataPtr[1] != INVALID_PTR){
-		setBitmap2(BITMAP_DADOS, inode->dataPtr[1], 0);
-	}
-
-	if(inode->singleIndPtr != INVALID_PTR){
-		getPointers(inode->singleIndPtr, pointers);
-		for(i = 0; i < PTR_PER_SECTOR*getBlocksize(); i++){
-			if(pointers[i] != INVALID_PTR){
-				setBitmap2(BITMAP_DADOS, pointers[i], 0);
-			}
-		}
-	}
-
-	// Indireção Dupla
-	if(inode->doubleIndPtr != INVALID_PTR){
-		getPointers(dirInode->doubleIndPtr, doublePointers);
-		for(j = 0; j < PTR_PER_SECTOR*getBlocksize(); j++){
-			if(doublePointers[j] != INVALID_PTR){
-				getPointers(doublePointers[j], pointers);
-				for(i = 0; i < PTR_PER_SECTOR*getBlocksize(); i++){
-					if(pointers[i] != INVALID_PTR){
-						setBitmap2(BITMAP_DADOS, pointers[i], 0);
-					}
-				}
-			}
-		}
-	}
+	clearPointers(inode);
 
 	//Clear the inode bitmap
 	setBitmap2(BITMAP_INODE, record->inodeNumber, 0);
