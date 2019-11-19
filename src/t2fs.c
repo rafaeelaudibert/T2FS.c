@@ -554,8 +554,6 @@ Função:	Função usada para criar um caminho alternativo (softlink)
 -----------------------------------------------------------------------------*/
 int sln2(char *linkname, char *filename)
 {
-	printf("strlen3 %d \n", strlen(linkname));
-
 	initialize();
 
 	// TODO: Remove this line later on
@@ -566,7 +564,6 @@ int sln2(char *linkname, char *filename)
 
 	// Configure bitmap
 	openBitmap2(getPartition()->firstSector);
-	printf("hue \n");
 
 	I_NODE *dirInode = getInode(0);
 	RECORD record;
@@ -582,7 +579,6 @@ int sln2(char *linkname, char *filename)
 			return -1;
 		}
 	}
-	printf("hue \n");
 
 	// Fetch and set bitmaps info
 	int inodeNumber = searchBitmap2(BITMAP_INODE, 0);
@@ -600,7 +596,6 @@ int sln2(char *linkname, char *filename)
 	setBitmap2(BITMAP_INODE, inodeNumber, 1);
 	setBitmap2(BITMAP_DADOS, blockNum, 1);
 
-	printf("hue \n");
 
 	// Copy information to the new record
 	strcpy(record.name, linkname);
@@ -611,7 +606,6 @@ int sln2(char *linkname, char *filename)
 	DWORD newRecordBlock = dirInode->bytesFileSize / getBlocksize();
 	DWORD newRecordSector = dirInode->bytesFileSize % getBlocksize() / SECTOR_SIZE;
 	DWORD newRecordSectorOffset = dirInode->bytesFileSize % SECTOR_SIZE;
-	printf("hue \n");
 
 	// Save it
 	BYTE *record_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
@@ -631,7 +625,6 @@ int sln2(char *linkname, char *filename)
 	// Compute where we will save the inode
 	int inodeSector = inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
 	int inodeSectorOffset = (inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
-	printf("hue \n");
 
 	// Create and save inode
 	I_NODE inode = {(DWORD)1, 60, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
@@ -656,7 +649,6 @@ int sln2(char *linkname, char *filename)
 	{
 		printf("DEBUG: Will allocate new block for dir entries.\n");
 		dirInode->blocksFileSize++;
-		printf("hue \n");
 
 		DWORD newBlock = searchBitmap2(BITMAP_DADOS, 0);
 		if (newBlock == -1)
@@ -838,8 +830,6 @@ int sln2(char *linkname, char *filename)
 		printf("ERROR: There was an error while trying to create a new directory entry.\n");
 		return -1;
 	}
-
-	printf("hue \n");
 
 	//Encontra o inode:
 	I_NODE *fileInode = getInode(inodeNumber);
