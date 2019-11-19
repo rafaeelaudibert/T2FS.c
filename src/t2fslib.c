@@ -354,6 +354,59 @@ int closeFile(FILE2 handle)
     return 0;
 }
 
+int countOpenedFiles()
+{
+    int counter = 0;
+
+    for (int i = 0; i < MAX_OPEN_FILES; i++)
+        if (open_files[i] != NULL)
+            counter++;
+
+    return counter;
+}
+
+inline FILE2 getHandler()
+{
+    return next_open_file_handler;
+}
+
+inline void incrementHandler()
+{
+    next_open_file_handler++;
+}
+
+FILE2 openFile(RECORD *record)
+{
+    FILE2 handle = getHandler();
+    incrementHandler(); // Remember to increment handler for next file
+
+    OPEN_FILE *file = (OPEN_FILE *)malloc(sizeof(OPEN_FILE));
+    file->record = record;
+    file->inode = getInode(record->inodeNumber);
+    file->file_position = 0;
+    file->handle = handle;
+
+    int position = getFirstFreeOpenFilePosition();
+    if (position == -1)
+    {
+        printf("ERROR: There is no available handler to open the file.\n");
+        return -1;
+    }
+
+    open_files[position] = file;
+
+    return handle;
+}
+
+inline int getFirstFreeOpenFilePosition()
+{
+    for (int i = 0; i < MAX_OPEN_FILES; ++i)
+        if (open_files[i] != NULL)
+            return i;
+
+    return -1;
+}
+
 inline void openRoot()
 {
     rootOpened = TRUE;
@@ -658,6 +711,26 @@ int getRecordByNumber(int number, RECORD *record)
         return -1;
     }
     memcpy(record, buffer + sector_position, sizeof(RECORD));
+
+    return 0;
+}
+
+int getRecordByName(char *filename, RECORD *record)
+{
+    I_NODE *rootFolderInode = getInode(0);
+    int i;
+    int filesQuantity = rootFolderInode->bytesFileSize / RECORD_SIZE;
+
+    for (i = 0; i < filesQuantity; i++)
+    {
+        getRecordByNumber(i, record);
+        if (record->TypeVal != TYPEVAL_INVALIDO && strcmp(record->name, filename) == 0)
+            break;
+    }
+
+    // Didn't found
+    if (i == filesQuantity)
+        return -1;
 
     return 0;
 }

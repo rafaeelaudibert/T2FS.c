@@ -427,7 +427,22 @@ FILE2 open2(char *filename)
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
-	return -9;
+	if (countOpenedFiles() == MAX_OPEN_FILES)
+	{
+		printf("There is no more handlers available to open a file.\n");
+		return -1;
+	}
+
+	RECORD *record = (RECORD *)malloc(sizeof(RECORD));
+	if (getRecordByName(filename, record) != 0)
+	{
+		printf("Couldn't find such file with filename %s.\n", filename);
+		return -1;
+	}
+
+	FILE2 handler = openFile(record);
+
+	return handler;
 }
 
 /*-----------------------------------------------------------------------------

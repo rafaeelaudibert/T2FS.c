@@ -90,6 +90,26 @@ int closeFile(FILE2 handle);
 
 /*
 
+    FUNCTIONS USED ON OPEN2
+
+*/
+// Count how many opened files there are
+int countOpenedFiles();
+
+// Return next handler
+FILE2 getHandler();
+
+// Go to next handle
+void incrementHandler();
+
+// Open the file given by a record and load its information on memory
+FILE2 openFile(RECORD *record);
+
+// Return the first position which is free inside the `open_files` array
+int getFirstFreeOpenFilePosition();
+
+/*
+
     FUNCTIONS USED ON OPENDIR2
 
 */
@@ -183,6 +203,9 @@ I_NODE *getInode(DWORD inodeNumber);
 
 // Gets a record by its number, filling the `record` structure
 int getRecordByNumber(int number, RECORD *record);
+
+// Gets a record by its name, filling the `record` structure
+int getRecordByName(char *filename, RECORD *record);
 
 // Quantity of direct blocks that an INODE can hold
 DWORD getInodeDirectQuantity();
