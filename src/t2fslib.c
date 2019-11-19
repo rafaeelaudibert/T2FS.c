@@ -408,7 +408,7 @@ inline int getBlocksize()
 int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE *buffer)
 {
     // Doesn't try to access not existent blocks
-    if (block_number >= inode->blocksFileSize)
+    if (block_number >= (int)inode->blocksFileSize)
     {
         printf("ERROR: Trying to acess not existent block");
         return -1;
@@ -416,13 +416,13 @@ int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE
 
     DWORD direct_quantity = getInodeDirectQuantity();
     DWORD simple_indirect_quantity = getInodeSimpleIndirectQuantity();
-    DWORD double_indirect_quantity = getInodeDoubleIndirectQuantity();
+    // DWORD double_indirect_quantity = getInodeDoubleIndirectQuantity();
 
     DWORD double_ind_sector = inode->doubleIndPtr * getSuperblock()->blockSize;
     DWORD simple_ind_sector = inode->singleIndPtr * getSuperblock()->blockSize;
     DWORD no_ind_sector = inode->dataPtr[block_number > 2 ? 0 : block_number] * getSuperblock()->blockSize; // We fill with a 0 in the default case, because it will be filled later
 
-    if (block_number >= direct_quantity + simple_indirect_quantity)
+    if (block_number >= (int)direct_quantity + (int)simple_indirect_quantity)
     {
         // Read with double indirection
         int shifted_block_number = block_number - direct_quantity - simple_indirect_quantity;
@@ -441,7 +441,7 @@ int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE
         block_number = (shifted_block_number % simple_indirect_quantity) + direct_quantity; // We add direct_quantity to make sense to discount it in the next indirection
     }
 
-    if (block_number >= direct_quantity)
+    if (block_number >= (int)direct_quantity)
     {
         // Read with simple indirection
         DWORD shifted_block_number = block_number - direct_quantity; // To find out which block inside the indirection we should read
@@ -474,7 +474,7 @@ int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE
 int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE *write_buffer)
 {
     // Doesn't try to access not existent blocks
-    if (block_number >= inode->blocksFileSize)
+    if (block_number >= (int)inode->blocksFileSize)
     {
         printf("ERROR: Trying to acess not existent block");
         return -1;
@@ -484,13 +484,13 @@ int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYT
 
     DWORD direct_quantity = getInodeDirectQuantity();
     DWORD simple_indirect_quantity = getInodeSimpleIndirectQuantity();
-    DWORD double_indirect_quantity = getInodeDoubleIndirectQuantity();
+    // DWORD double_indirect_quantity = getInodeDoubleIndirectQuantity();
 
     DWORD double_ind_sector = inode->doubleIndPtr * getSuperblock()->blockSize;
     DWORD simple_ind_sector = inode->singleIndPtr * getSuperblock()->blockSize;
     DWORD no_ind_sector = inode->dataPtr[block_number > 2 ? 0 : block_number] * getSuperblock()->blockSize; // We fill with a 0 in the default case, because it will be filled later
 
-    if (block_number >= direct_quantity + simple_indirect_quantity)
+    if (block_number >= (int)direct_quantity + (int)simple_indirect_quantity)
     {
         // Read with double indirection
         int shifted_block_number = block_number - direct_quantity - simple_indirect_quantity;
@@ -509,7 +509,7 @@ int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYT
         block_number = (shifted_block_number % simple_indirect_quantity) + direct_quantity; // We add direct_quantity to make sense to discount it in the next indirection
     }
 
-    if (block_number >= direct_quantity)
+    if (block_number >= (int)direct_quantity)
     {
         // Read with simple indirection
         DWORD shifted_block_number = block_number - direct_quantity; // To find out which block inside the indirection we should read
