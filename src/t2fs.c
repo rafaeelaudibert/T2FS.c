@@ -463,10 +463,6 @@ int delete2(char *filename)
 	DWORD recordSector = bytesFileSizeUntilRecord % getBlocksize() / SECTOR_SIZE;
 	DWORD recordSectorOffset = bytesFileSizeUntilRecord % SECTOR_SIZE;
 
-	printf("record block %d\n", recordBlock);
-	printf("recordSector %d\n", recordSector);
-	printf("recordSectorOffset %d\n", recordSectorOffset);
-
 	// Save it
 	BYTE *record_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
 	if (readDataBlockSector(recordBlock, recordSector, dirInode, (BYTE *)record_buffer) != 0)
@@ -492,8 +488,6 @@ int delete2(char *filename)
 		// Compute where the inode is
 		DWORD inodeSector = record->inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
 		DWORD inodeSectorOffset = (record->inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
-		printf("inodeSector %d\n", inodeSector);
-		printf("inodeSectorOffset %d\n", inodeSectorOffset);
 
 		// Update and save inode
 		BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
