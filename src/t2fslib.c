@@ -713,6 +713,58 @@ int getRecordByNumber(int number, RECORD *record)
     return 0;
 }
 
+int getPointers(DWORD blockNumber, DWORD *pointers){
+	unsigned char buffer[SECTOR_SIZE];
+	int i, j;
+
+	for(i = 0; i < getSuperblock()->blockSize; i++){ // For all sector of block
+		int sectorNumber = blockNumber*getSuperblock()->blockSize + i;
+		read_sector(sectorNumber, buffer);
+		for(j = 0; j < PTR_PER_SECTOR; j++){  // For all record of sector
+			pointers[j + i*PTR_PER_SECTOR] = *((DWORD*)(buffer + j*PTR_SIZE));
+		}
+	}
+	return 0;
+}
+
+int clearPointers(I_NODE *inode){
+  int i, j;
+  DWORD pointers[PTR_PER_SECTOR*getBlocksize()];
+  DWORD doublePointers[PTR_PER_SECTOR*getBlocksize()];
+
+  if(inode->dataPtr[0] != INVALID_PTR){
+    setBitmap2(BITMAP_DADOS, inode->dataPtr[0], 0);
+  }
+
+  if(inode->dataPtr[1] != INVALID_PTR){
+    setBitmap2(BITMAP_DADOS, inode->dataPtr[1], 0);
+  }
+
+  if(inode->singleIndPtr != INVALID_PTR){
+    getPointers(inode->singleIndPtr, pointers);
+    for(i = 0; i < PTR_PER_SECTOR*getBlocksize(); i++){
+      if(pointers[i] != INVALID_PTR){
+        setBitmap2(BITMAP_DADOS, pointers[i], 0);
+      }
+    }
+  }
+
+  // Indireção Dupla
+  if(inode->doubleIndPtr != INVALID_PTR){
+    getPointers(inode->doubleIndPtr, doublePointers);
+    for(j = 0; j < PTR_PER_SECTOR*getBlocksize(); j++){
+      if(doublePointers[j] != INVALID_PTR){
+        getPointers(doublePointers[j], pointers);
+        for(i = 0; i < PTR_PER_SECTOR*getBlocksize(); i++){
+          if(pointers[i] != INVALID_PTR){
+            setBitmap2(BITMAP_DADOS, pointers[i], 0);
+          }
+        }
+      }
+    }
+  }
+}
+
 int getRecordByName(char *filename, RECORD *record)
 {
     I_NODE *rootFolderInode = getInode(0);
