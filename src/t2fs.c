@@ -132,6 +132,7 @@ FILE2 create2(char *filename)
 
 	// Remove old file with same name
 	int filesQuantity = dirInode->bytesFileSize / RECORD_SIZE;
+	int bytesUntilFreeSpace = 0;
 	for (int i = 0; i < filesQuantity; i++)
 	{
 		getRecordByNumber(i, &record);
@@ -144,6 +145,10 @@ FILE2 create2(char *filename)
 			};
 			break;
 		}
+		if(record.TypeVal == TYPEVAL_INVALIDO){
+			break;
+		}
+		bytesUntilFreeSpace = bytesUntilFreeSpace + RECORD_SIZE;
 	}
 
 	// Fetch and set bitmaps info
@@ -168,9 +173,9 @@ FILE2 create2(char *filename)
 	record.inodeNumber = inodeNumber;
 
 	// Compute where we will save the new record
-	DWORD newRecordBlock = dirInode->bytesFileSize / getBlocksize();
-	DWORD newRecordSector = dirInode->bytesFileSize % getBlocksize() / SECTOR_SIZE;
-	DWORD newRecordSectorOffset = dirInode->bytesFileSize % SECTOR_SIZE;
+	DWORD newRecordBlock = bytesUntilFreeSpace / getBlocksize();
+	DWORD newRecordSector = bytesUntilFreeSpace % getBlocksize() / SECTOR_SIZE;
+	DWORD newRecordSectorOffset = bytesUntilFreeSpace % SECTOR_SIZE;
 
 	// Save it
 	BYTE *record_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
@@ -471,6 +476,23 @@ int delete2(char *filename)
 		return -1;
 	}
 
+	//update the DirInode bytesFileSize
+	dirInode->bytesFileSize -= RECORD_SIZE;
+
+	//save the inode of the directory
+	BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
+	if (read_sector(getInodesFirstSector(getPartition(), getSuperblock()), buffer_inode) != 0)
+	{
+		printf("ERROR: Failed reading record\n");
+		return -1;
+	}
+	memcpy(buffer_inode, dirInode, sizeof(I_NODE));
+	if (write_sector(getInodesFirstSector(getPartition(), getSuperblock()), buffer_inode) != 0)
+	{
+		printf("ERROR: Failed writing record\n");
+		return -1;
+	}
+
 	//get the inode of the record
 	I_NODE *inode = getInode(record->inodeNumber);
 
@@ -500,6 +522,7 @@ int delete2(char *filename)
 		return 0;
 	}
 
+	//If there is no hardlink, clear the pointers
 	clearPointers(inode);
 
 	//Clear the inode bitmap
@@ -514,7 +537,8 @@ int delete2(char *filename)
 	// Remember to close the opened bitmap
 	closeBitmap2();
 
-	return -9;
+	printf("The file was successfuly removed.\n");
+	return 0;
 }
 
 /*-----------------------------------------------------------------------------
@@ -622,12 +646,11 @@ int readdir2(DIRENT2 *dentry)
 	// Update to the next directory entry for the next function call
 	nextDirectoryEntry();
 
-
 	// If read an invalid record, go to the next
 	if (record.TypeVal == TYPEVAL_INVALIDO)
 			return readdir2(dentry);
 
-
+	nextDirectoryEntryValid();
 
 	// Copy the record information to the `DIRENT2` structure
 	memcpy(dentry->name, record.name, sizeof(BYTE) * 51);
@@ -729,7 +752,7 @@ int sln2(char *linkname, char *filename)
 	int inodeSectorOffset = (inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
 
 	// Create and save inode
-	I_NODE inode = {(DWORD)1, 60, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
+	I_NODE inode = {(DWORD)1, (DWORD)strlen(filename)+1, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
 	BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
 	if (read_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode) != 0)
 	{
