@@ -17,7 +17,8 @@ MBR *mbr = NULL;
 SUPERBLOCK *superblock = NULL;
 int mounted_partition = -1;
 BOOL rootOpened = FALSE;
-DWORD rootFolderFileIndex = 0;
+DWORD rootFolderFileIndexValid = 0;
+DWORD rootFolderFileIndexAll = 0;
 OPEN_FILE *open_files[] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 int next_open_file_handler = 0;
 
@@ -410,7 +411,8 @@ inline int getFirstFreeOpenFilePosition()
 inline void openRoot()
 {
     rootOpened = TRUE;
-    rootFolderFileIndex = 0;
+    rootFolderFileIndexValid = 0;
+    rootFolderFileIndexAll = 0;
 
     return;
 }
@@ -424,7 +426,7 @@ inline void closeRoot()
 
 inline BOOL finishedEntries(I_NODE *inode)
 {
-    return rootFolderFileIndex * sizeof(RECORD) >= inode->bytesFileSize;
+    return rootFolderFileIndexValid* sizeof(RECORD) >= inode->bytesFileSize;
 }
 
 /*
@@ -684,12 +686,18 @@ I_NODE *getInode(DWORD inodeNumber)
 
 inline int getCurrentDirectoryEntryIndex()
 {
-    return rootFolderFileIndex;
+    return rootFolderFileIndexAll;
 }
 
 inline void nextDirectoryEntry()
 {
-    rootFolderFileIndex++;
+    rootFolderFileIndexAll++;
+
+    return;
+}
+inline void nextDirectoryEntryValid()
+{
+    rootFolderFileIndexValid++;
 
     return;
 }
@@ -734,14 +742,15 @@ int clearPointers(I_NODE *inode){
   DWORD pointers[PTR_PER_SECTOR*getBlocksize()];
   DWORD doublePointers[PTR_PER_SECTOR*getBlocksize()];
 
+  //Direct
   if(inode->dataPtr[0] != INVALID_PTR){
     setBitmap2(BITMAP_DADOS, inode->dataPtr[0], 0);
   }
-
   if(inode->dataPtr[1] != INVALID_PTR){
     setBitmap2(BITMAP_DADOS, inode->dataPtr[1], 0);
   }
 
+  // Simple Indirection
   if(inode->singleIndPtr != INVALID_PTR){
     getPointers(inode->singleIndPtr, pointers);
     for(i = 0; i < PTR_PER_SECTOR*getBlocksize(); i++){
@@ -751,7 +760,7 @@ int clearPointers(I_NODE *inode){
     }
   }
 
-  // Indireção Dupla
+  // Double Indirection
   if(inode->doubleIndPtr != INVALID_PTR){
     getPointers(inode->doubleIndPtr, doublePointers);
     for(j = 0; j < PTR_PER_SECTOR*getBlocksize(); j++){
