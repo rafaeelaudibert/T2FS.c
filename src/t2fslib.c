@@ -415,7 +415,7 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
   DWORD double_indirect_quantity = getInodeDoubleIndirectQuantity();
 
   int bytesFilePosition = open_files[handle]->file_position;
-  bytesFilePosition = 250;
+  //bytesFilePosition = 250;
   RECORD *fileRecord = open_files[handle]->record;
   I_NODE *fileInode = open_files[handle]->inode;
 
@@ -439,6 +439,7 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
     newDataSector = bytesFilePosition % getBlocksize() / SECTOR_SIZE;
     newDataSectorOffset = bytesFilePosition % SECTOR_SIZE;
     printf("Bloco do arquivo: %d\n", newDataBlock);
+    printf("Tamanho do block: %d\n", getBlocksize());
     printf("Setor do arquivo: %d\n", newDataSector);
     printf("Offset do setor: %d\n", newDataSectorOffset);
 
