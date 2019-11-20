@@ -406,6 +406,17 @@ inline int getFirstFreeOpenFilePosition()
     return -1;
 }
 
+inline DWORD getNewBlock(){
+  DWORD newBlock = searchBitmap2(BITMAP_DADOS, 0);
+  if (newBlock == -1)
+  {
+    printf("ERROR: There is no space left to create a new directory entry.\n");
+    return -1;
+  }
+  setBitmap2(BITMAP_DADOS, newBlock, 1);
+  return newBlock;
+}
+
 FILE2 writeFile(FILE2 handle, char *buffer, int size)
 {
 
@@ -455,24 +466,19 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
     if(newDataBlock+1 > fileInode->blocksFileSize){
       printf("--Nao existe bloco no Root INODE:\n");
       fileInode->blocksFileSize++;
-      newBlock = searchBitmap2(BITMAP_DADOS, 0);
-  		if (newBlock == -1)
-  		{
-  			printf("ERROR: There is no space left to create a new directory entry.\n");
-  			return -1;
-  		}
-  		setBitmap2(BITMAP_DADOS, newBlock, 1);
 
       if (fileInode->blocksFileSize == direct_quantity)
       {
         printf("----DIRETO 01\n");
+        printf("    CRIA NOVO BLOCO\n");
+        newBlock = getNewBlock();
         fileInode->dataPtr[1] = newBlock;
         printf("--Novo bloco no Root INODE criado: %d\n", newBlock);
       }
       //------------------------------------------------------------
       //------------------------------------------------------------
       //------------------------------------------------------------
-      else if (fileInode->blocksFileSize == direct_quantity + 1)
+      if (fileInode->blocksFileSize == direct_quantity + 1)
       {
         // Allocate block for the simple indirection block
         printf("----INDIRETO INICIO\n");
@@ -484,6 +490,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
           printf("ERROR: There is no space left to create a new directory entry.\n");
           return -1;
         }
+        printf("___simple %d\n", newSimpleIndirectionBlock);
+
         if (setBitmap2(BITMAP_DADOS, newSimpleIndirectionBlock, 1) != 0)
         {
           printf("ERROR: There is no space left to create a new directory entry.\n");
@@ -492,6 +500,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
         fileInode->singleIndPtr = newSimpleIndirectionBlock;
 
         simple_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
+        printf("    CRIA NOVO BLOCO\n");
+        newBlock = getNewBlock();
         memcpy(simple_ind_buffer, &newBlock, sizeof(newBlock));
         if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + fileInode->singleIndPtr * getSuperblock()->blockSize, simple_ind_buffer) != 0)
         {
@@ -503,13 +513,14 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
       {
         // Middle single indirection block
         printf("----INDIRETO MEIO\n");
-
         simple_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
         if (read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + fileInode->singleIndPtr * getSuperblock()->blockSize, simple_ind_buffer) != 0)
         {
           printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
           return -1;
         }
+        printf("    CRIA NOVO BLOCO\n");
+        newBlock = getNewBlock();
         memcpy(simple_ind_buffer + (fileInode->blocksFileSize - direct_quantity - 1) * sizeof(newBlock), &newBlock, sizeof(newBlock));
         if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + fileInode->singleIndPtr * getSuperblock()->blockSize, simple_ind_buffer) != 0)
         {
@@ -519,7 +530,7 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
       }
       else if (fileInode->blocksFileSize == direct_quantity + simple_indirect_quantity + 1) // TODO: Need to allocate blocks for the double indirection
       {
-        printf("----INDIRETO 02 INICIO\n");
+        printf("----------------------------------------------------------INDIRETO 02 INICIO\n");
         // Allocate bitmap for doubleIndirectionBlock
         newDoubleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
         if (newDoubleIndirectionBlock == -1)
@@ -556,6 +567,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
         }
 
         simple_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
+        printf("    CRIA NOVO BLOCO\n");
+        newBlock = getNewBlock();
         memcpy(simple_ind_buffer, &newBlock, sizeof(newBlock));
         if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + newSimpleIndirectionBlock * getSuperblock()->blockSize, simple_ind_buffer) != 0)
         {
@@ -592,6 +605,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
         }
 
         simple_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
+        printf("    CRIA NOVO BLOCO\n");
+        newBlock = getNewBlock();
         memcpy(simple_ind_buffer, &newBlock, sizeof(newBlock));
         if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + newSimpleIndirectionBlock * getSuperblock()->blockSize, simple_ind_buffer) != 0)
         {
@@ -616,6 +631,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
           printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
           return -1;
         }
+        printf("    CRIA NOVO BLOCO\n");
+        newBlock = getNewBlock();
         memcpy(simple_ind_buffer + (fileInode->blocksFileSize - direct_quantity - simple_indirect_quantity - 1) % simple_indirect_quantity * sizeof(newBlock), &newBlock, sizeof(newBlock));
         if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + simple_ind_ptr, simple_ind_buffer) != 0)
         {
@@ -866,6 +883,7 @@ int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYT
 
     if (block_number >= (int)direct_quantity + (int)simple_indirect_quantity)
     {
+        printf("------Double\n");
         // Read with double indirection
         int shifted_block_number = block_number - direct_quantity - simple_indirect_quantity;
 
@@ -885,6 +903,7 @@ int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYT
 
     if (block_number >= (int)direct_quantity)
     {
+        printf("------Single\n");
         // Read with simple indirection
         DWORD shifted_block_number = block_number - direct_quantity; // To find out which block inside the indirection we should read
 
@@ -902,8 +921,12 @@ int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYT
     }
 
     // Read without indirection
+    printf("------Without\n");
     DWORD block_to_write = no_ind_sector;
     DWORD sector_to_write = block_to_write + sector_number;
+    printf("------block_to_write %d\n", block_to_write);
+    printf("------sector_to_write %d\n", sector_to_write);
+
     if ((write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + sector_to_write, write_buffer)) != 0)
     {
         printf("ERROR: Failed to read folder data sector.\n");
