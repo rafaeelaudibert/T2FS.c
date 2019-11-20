@@ -17,10 +17,21 @@
 #define RECORD_SIZE 64
 #define INODE_SIZE 32
 #define INODE_PER_SECTOR 8
+#define MAX_OPEN_FILES 10
 
 typedef struct t2fs_superbloco SUPERBLOCK;
 typedef struct t2fs_record RECORD;
 typedef struct t2fs_inode I_NODE;
+
+// Open file structure to have a record, its inode and the position where
+// its pointer is currently located
+typedef struct
+{
+    RECORD *record;
+    I_NODE *inode;
+    DWORD file_position;
+    FILE2 handle;
+} OPEN_FILE;
 
 /*
 
@@ -61,6 +72,41 @@ int configureMountedPartition(int partition_number);
 
 // Unmount the partition currently mounted on "\\" path
 int unmountPartition();
+
+/*
+
+    FUNCTIONS USED ON CLOSE2
+
+*/
+// Return the position of a file given a handle
+int getFilePositionByHandle(FILE2 handle);
+
+// Return the position of a file given a name
+int getFilePositionByName(char *filename);
+
+// Make sure to free all the memory allocated for an open file
+// with  `handle` handle number
+int closeFile(FILE2 handle);
+
+/*
+
+    FUNCTIONS USED ON OPEN2
+
+*/
+// Count how many opened files there are
+int countOpenedFiles();
+
+// Return next handler
+FILE2 getHandler();
+
+// Go to next handle
+void incrementHandler();
+
+// Open the file given by a record and load its information on memory
+FILE2 openFile(RECORD *record);
+
+// Return the first position which is free inside the `open_files` array
+int getFirstFreeOpenFilePosition();
 
 /*
 
@@ -157,6 +203,9 @@ I_NODE *getInode(DWORD inodeNumber);
 
 // Gets a record by its number, filling the `record` structure
 int getRecordByNumber(int number, RECORD *record);
+
+// Gets a record by its name, filling the `record` structure
+int getRecordByName(char *filename, RECORD *record);
 
 // Quantity of direct blocks that an INODE can hold
 DWORD getInodeDirectQuantity();

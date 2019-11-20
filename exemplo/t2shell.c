@@ -819,7 +819,7 @@ void cmdLn(void) {
     }
 
 	// make link
-    err = sln2 (linkname, token);
+    err = hln2 (linkname, token);
     if (err!=0) {
         printf ("Error: %d\n", err);
         return;

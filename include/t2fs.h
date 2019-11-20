@@ -1,5 +1,3 @@
-
-
 #ifndef __LIBT2FS___
 #define __LIBT2FS___
 
@@ -15,8 +13,9 @@ typedef int DIR2;
 
 #pragma pack(push, 1)
 
-/** Registro com as informa��es da entrada de diret�rio, lida com readdir2 */
+/** Registro com as informações da entrada de diretório, lida com readdir2 */
 #define MAX_FILE_NAME_SIZE 255
+
 typedef struct
 {
 	char name[MAX_FILE_NAME_SIZE + 1]; /* Nome do arquivo cuja entrada foi lida do disco      */
@@ -24,6 +23,7 @@ typedef struct
 	DWORD fileSize;					   /* Numero de bytes do arquivo                          */
 } DIRENT2;
 
+// Struct that holds a partition information (to abstract from MBR)
 typedef struct
 {
 	DWORD firstSector;
@@ -31,6 +31,7 @@ typedef struct
 	char name[MAX_PARTITION_NAME_SIZE];
 } PARTITION;
 
+// Struct which holds the disk MBR sector
 typedef struct
 {
 	WORD version;
