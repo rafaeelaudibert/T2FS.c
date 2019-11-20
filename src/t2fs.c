@@ -172,10 +172,6 @@ FILE2 create2(char *filename)
 	DWORD newRecordSector = dirInode->bytesFileSize % getBlocksize() / SECTOR_SIZE;
 	DWORD newRecordSectorOffset = dirInode->bytesFileSize % SECTOR_SIZE;
 
-	// printf("record block %d\n", newRecordBlock);
-	// printf("recordSector %d\n", newRecordSector);
-	// printf("recordSectorOffset %d\n", newRecordSectorOffset);
-
 	// Save it
 	BYTE *record_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
 	if (readDataBlockSector(newRecordBlock, newRecordSector, dirInode, (BYTE *)record_buffer) != 0)
@@ -193,9 +189,6 @@ FILE2 create2(char *filename)
 	// Compute where we will save the inode
 	DWORD inodeSector = inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
 	DWORD inodeSectorOffset = (inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
-
-	printf("inodeSector %d\n", inodeSector);
-	printf("inodeSectorOffset %d\n", inodeSectorOffset);
 
 	// Create and save inode
 	I_NODE inode = {(DWORD)1, (DWORD)0, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
