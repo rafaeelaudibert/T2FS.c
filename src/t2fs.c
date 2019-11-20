@@ -135,7 +135,7 @@ FILE2 create2(char *filename)
 	for (int i = 0; i < filesQuantity; i++)
 	{
 		getRecordByNumber(i, &record);
-		if (strcmp(record.name, filename) == 0)
+		if ((strcmp(record.name, filename) == 0) && (record.TypeVal != TYPEVAL_INVALIDO))
 		{
 			if (delete2(filename) != 0)
 			{
@@ -412,8 +412,107 @@ Função:	Função usada para remover (apagar) um arquivo do disco.
 int delete2(char *filename)
 {
 	initialize();
+
+	// TODO: Remove this line later on
+	opendir2();
+
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
+
+	// Configure bitmap
+	openBitmap2(getPartition()->firstSector);
+
+	I_NODE *dirInode = getInode(0);
+	RECORD *record = (RECORD *)malloc(sizeof(RECORD));
+	RECORD *recordAux = (RECORD *)malloc(sizeof(RECORD));
+	DWORD bytesFileSizeUntilRecord = 0;
+	record = NULL;
+
+	// Search for the record
+	int filesQuantity = dirInode->bytesFileSize / RECORD_SIZE;
+	for (int i = 0; i < filesQuantity; i++)
+	{
+		getRecordByNumber(i, recordAux);
+		if ((strcmp(recordAux->name, filename) == 0) && (recordAux->TypeVal != TYPEVAL_INVALIDO))
+			{
+				record = recordAux;
+				break;
+			}
+
+		bytesFileSizeUntilRecord = RECORD_SIZE + bytesFileSizeUntilRecord;
+	}
+
+	//Test if the record was found
+	if (!record){
+		printf("ERROR: There is no file with name %s.\n", filename);
+		return -1;
+	}
+
+	//update the record to invalid
+	record->TypeVal = TYPEVAL_INVALIDO;
+
+	// Compute where is the record
+	DWORD recordBlock = bytesFileSizeUntilRecord / getBlocksize();
+	DWORD recordSector = bytesFileSizeUntilRecord % getBlocksize() / SECTOR_SIZE;
+	DWORD recordSectorOffset = bytesFileSizeUntilRecord % SECTOR_SIZE;
+
+	// Save it
+	BYTE *record_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
+	if (readDataBlockSector(recordBlock, recordSector, dirInode, (BYTE *)record_buffer) != 0)
+	{
+		printf("ERROR: Failed reading record\n");
+		return -1;
+	}
+
+	memcpy(record_buffer + recordSectorOffset, record, sizeof(RECORD));
+	if (writeDataBlockSector(recordBlock, recordSector, dirInode, (BYTE *)record_buffer) != 0)
+	{
+		printf("ERROR: Failed writing record\n");
+		return -1;
+	}
+
+	//get the inode of the record
+	I_NODE *inode = getInode(record->inodeNumber);
+
+	//updates RefCounter and test if exists any hardlink.
+	inode->RefCounter = inode->RefCounter - 1;
+	if(inode->RefCounter > 0){
+
+		// Compute where the inode is
+		DWORD inodeSector = record->inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
+		DWORD inodeSectorOffset = (record->inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
+
+		// Update and save inode
+		BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
+		if (read_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode) != 0)
+		{
+			printf("ERROR: Failed reading record\n");
+			return -1;
+		}
+		memcpy(buffer_inode + inodeSectorOffset, inode, sizeof(I_NODE));
+		if (write_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode) != 0)
+		{
+			printf("ERROR: Failed writing record\n");
+			return -1;
+		}
+
+		printf("The file was successfuly removed.\n");
+		return 0;
+	}
+
+	clearPointers(inode);
+
+	//Clear the inode bitmap
+	setBitmap2(BITMAP_INODE, record->inodeNumber, 0);
+
+	// Free dynamically allocated memory
+	// free(record_buffer);
+	// free(dirInode);
+	// free(record);
+	// free(recordAux);
+
+	// Remember to close the opened bitmap
+	closeBitmap2();
 
 	return -9;
 }
@@ -523,9 +622,12 @@ int readdir2(DIRENT2 *dentry)
 	// Update to the next directory entry for the next function call
 	nextDirectoryEntry();
 
+
 	// If read an invalid record, go to the next
 	if (record.TypeVal == TYPEVAL_INVALIDO)
-		return readdir2(dentry);
+			return readdir2(dentry);
+
+
 
 	// Copy the record information to the `DIRENT2` structure
 	memcpy(dentry->name, record.name, sizeof(BYTE) * 51);
