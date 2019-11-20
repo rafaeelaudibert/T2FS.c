@@ -178,12 +178,10 @@ int formatPartition(int partition_number, int sectors_per_block)
 // and complementing it values
 inline DWORD computeChecksum(SUPERBLOCK *superBlock)
 {
-    DWORD value = 0, i = 0;
+    DWORD value = 0;
 
-    for (i = 0; i < 20; i += 4)
-    {
+    for (int i = 0; i < 20; i += 4)
         value += *((DWORD *)(superBlock + i));
-    }
 
     return ~value;
 }
