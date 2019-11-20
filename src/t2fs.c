@@ -729,7 +729,7 @@ int sln2(char *linkname, char *filename)
 	int inodeSectorOffset = (inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
 
 	// Create and save inode
-	I_NODE inode = {(DWORD)1, (DWORD)strlen(filename), {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
+	I_NODE inode = {(DWORD)1, (DWORD)strlen(filename)+1, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
 	BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
 	if (read_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode) != 0)
 	{
