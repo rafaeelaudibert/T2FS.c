@@ -18,6 +18,8 @@ SUPERBLOCK *superblock = NULL;
 int mounted_partition = -1;
 BOOL rootOpened = FALSE;
 DWORD rootFolderFileIndex = 0;
+OPEN_FILE *open_files[] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+int next_open_file_handler = 0;
 
 void initialize()
 {
@@ -301,6 +303,110 @@ inline int unmountPartition()
     return 0;
 }
 
+int getFilePositionByHandle(FILE2 handle)
+{
+    int position = -1;
+
+    for (int i = 0; i < MAX_OPEN_FILES; i++)
+    {
+        if (open_files[i] != NULL && open_files[i]->handle == handle)
+        {
+            position = i;
+            break;
+        }
+    }
+
+    return position;
+}
+
+int getFilePositionByName(char *filename)
+{
+    int position = -1;
+
+    for (int i = 0; i < MAX_OPEN_FILES; i++)
+    {
+        if (open_files[i] != NULL && strcmp(open_files[i]->record->name, filename) == 0)
+        {
+            position = i;
+            break;
+        }
+    }
+
+    return position;
+}
+
+int closeFile(FILE2 handle)
+{
+    int position = getFilePositionByHandle(handle);
+
+    if (position == -1)
+    {
+        printf("ERROR: There is no open file with such a handle: %d.\n", handle);
+        return -1;
+    }
+
+    free(open_files[position]->record);
+    free(open_files[position]->inode);
+    free(open_files[position]);
+
+    open_files[position] = NULL;
+
+    return 0;
+}
+
+int countOpenedFiles()
+{
+    int counter = 0;
+
+    for (int i = 0; i < MAX_OPEN_FILES; i++)
+        if (open_files[i] != NULL)
+            counter++;
+
+    return counter;
+}
+
+inline FILE2 getHandler()
+{
+    return next_open_file_handler;
+}
+
+inline void incrementHandler()
+{
+    next_open_file_handler++;
+}
+
+FILE2 openFile(RECORD *record)
+{
+    FILE2 handle = getHandler();
+    incrementHandler(); // Remember to increment handler for next file
+
+    OPEN_FILE *file = (OPEN_FILE *)malloc(sizeof(OPEN_FILE));
+    file->record = record;
+    file->inode = getInode(record->inodeNumber);
+    file->file_position = 0;
+    file->handle = handle;
+
+    int position = getFirstFreeOpenFilePosition();
+    if (position == -1)
+    {
+        printf("ERROR: There is no available handler to open the file.\n");
+        return -1;
+    }
+
+    open_files[position] = file;
+
+    return handle;
+}
+
+inline int getFirstFreeOpenFilePosition()
+{
+    for (int i = 0; i < MAX_OPEN_FILES; ++i)
+        if (open_files[i] != NULL)
+            return i;
+
+    return -1;
+}
+
 inline void openRoot()
 {
     rootOpened = TRUE;
@@ -372,7 +478,7 @@ inline BOOL isRootOpened()
 {
     if (!rootOpened)
     {
-        printf("ERROR: You must open the root directory.");
+        printf("ERROR: You must open the root directory.\n");
         return FALSE;
     }
 
@@ -661,6 +767,25 @@ int clearPointers(I_NODE *inode){
   }
 }
 
+int getRecordByName(char *filename, RECORD *record)
+{
+    I_NODE *rootFolderInode = getInode(0);
+    int i;
+    int filesQuantity = rootFolderInode->bytesFileSize / RECORD_SIZE;
+
+    for (i = 0; i < filesQuantity; i++)
+    {
+        getRecordByNumber(i, record);
+        if (record->TypeVal != TYPEVAL_INVALIDO && strcmp(record->name, filename) == 0)
+            break;
+    }
+
+    // Didn't found
+    if (i == filesQuantity)
+        return -1;
+
+    return 0;
+}
 
 // iNodePointersQuantities
 inline DWORD getInodeDirectQuantity()
