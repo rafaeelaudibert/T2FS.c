@@ -110,6 +110,17 @@ int getFirstFreeOpenFilePosition();
 
 /*
 
+    FUNCTIONS USED ON DELETE2
+
+*/
+// Get the pointers of a block
+int getPointers(DWORD blockNumber, DWORD *pointers);
+
+//Clear the inode pointers, freeing the data bitmap
+int clearPointers(I_NODE *inode);
+
+/*
+
     FUNCTIONS USED ON OPENDIR2
 
 */
@@ -138,6 +149,9 @@ int getCurrentDirectoryEntryIndex();
 
 // Increments the current `directoryEntryIndex`
 void nextDirectoryEntry();
+
+//Increments the current `directoryEntryValidIndex`
+void nextDirectoryEntryValid();
 
 /*
 
