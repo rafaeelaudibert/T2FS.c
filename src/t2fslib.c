@@ -713,13 +713,13 @@ int readFile(FILE2 handle, char *buffer, int size)
             memcpy(buffer, file_buffer + currentSectorOffset, (SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset));
 
             //updates the buffer offset
-            bufferOffsetTotal = SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset;
+            bufferOffsetTotal += SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset;
 
             //update the size left to read
-            size = size - (SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset);
+            size -= SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset;
 
             //update the filePosition
-            *bytesFilePosition += SECTOR_SIZE - currentSectorOffset;
+            *bytesFilePosition += SECTOR_SIZE- currentSectorOffset - sizeSmallerThanOffset;
         }
     }
 
@@ -777,11 +777,9 @@ int readFile(FILE2 handle, char *buffer, int size)
             bufferOffsetTotal += sectorToReadOffset;
 
             //update the filePosition
-            *bytesFilePosition += SECTOR_SIZE - currentSectorOffset;
+            *bytesFilePosition += size;
         }
     }
-
-    buffer[bufferOffsetTotal] = '\0';
 
     return bufferOffsetTotal;
 }
