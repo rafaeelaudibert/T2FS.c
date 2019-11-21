@@ -121,6 +121,12 @@ int clearPointers(I_NODE *inode);
 
 /*
 
+    FUNCTIONS USED ON READ2
+
+*/
+int readFile(FILE2 handle, char *buffer, int size);
+/*
+
     FUNCTIONS USED ON OPENDIR2
 
 */

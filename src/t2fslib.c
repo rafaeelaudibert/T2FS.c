@@ -129,6 +129,9 @@ int formatPartition(int partition_number, int sectors_per_block)
         return -1;
     }
 
+
+    //nao era suposto de entrar aqui?
+
     for (DWORD sectorIdx = partition.firstSector + 1; sectorIdx < partition.firstSector + sb.blockSize; ++sectorIdx)
     {
         if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
@@ -145,6 +148,8 @@ int formatPartition(int partition_number, int sectors_per_block)
     DWORD last_bbitmap = getBlockBitmapLastSector(&partition, &sb);
     for (DWORD sectorIdx = first_bbitmap; sectorIdx < last_bbitmap; ++sectorIdx)
     {
+      printf("ERROR: Failed writing block bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
+
         if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
         {
             printf("ERROR: Failed writing block bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
@@ -159,6 +164,8 @@ int formatPartition(int partition_number, int sectors_per_block)
     DWORD last_ibitmap = getInodeBitmapLastSector(&partition, &sb);
     for (DWORD sectorIdx = first_ibitmap; sectorIdx < last_ibitmap; ++sectorIdx)
     {
+      printf("ERROR: Failed writing inode bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
+
         if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
         {
             printf("ERROR: Failed writing inode bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
@@ -705,6 +712,119 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
   printf("--Salvou o ROOT Inode...\n");
 
 
+  return 0;
+}
+
+
+int readFile(FILE2 handle, char *buffer, int size)
+{
+	int *bytesFilePosition = &(open_files[handle]->file_position);
+  *bytesFilePosition = 30;
+	RECORD *fileRecord = open_files[handle]->record;
+  I_NODE *fileInode = open_files[handle]->inode;
+
+	//where is my pointer
+	DWORD currentBlock = *bytesFilePosition / getBlocksize();
+	DWORD currentSector = *bytesFilePosition % getBlocksize() / SECTOR_SIZE;
+	DWORD currentSectorOffset = *bytesFilePosition % SECTOR_SIZE;
+
+	openBitmap2(getPartition()->firstSector);
+
+	DWORD direct_quantity = getInodeDirectQuantity();
+  DWORD simple_indirect_quantity = getInodeSimpleIndirectQuantity();
+  DWORD double_indirect_quantity = getInodeDoubleIndirectQuantity();
+
+	int bytesReadUntilNow = 0;
+
+	BYTE *file_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
+
+	int bufferOffsetTotal = 0;
+
+  int sizeSmallerThanOffset = 0;
+
+	if(	*bytesFilePosition <= fileInode->bytesFileSize && size>0)
+	{
+
+		//Test if exists any first sector offset to read
+		if(currentSectorOffset>0){
+
+      if(size<(SECTOR_SIZE - currentSectorOffset)){
+        sizeSmallerThanOffset = SECTOR_SIZE - size - currentSectorOffset;
+      }
+
+			if (readDataBlockSector(currentBlock, currentSector, fileInode, (BYTE *)file_buffer) != 0)
+			{
+				printf("ERROR: Failed reading record\n");
+				return -1;
+			}
+
+			memcpy(buffer, file_buffer + currentSectorOffset, (SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset));
+
+			//updates the buffer offset
+			bufferOffsetTotal = SECTOR_SIZE - currentSectorOffset;
+
+			//update the size left to read
+			size = size - (SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset);
+
+			//update the filePosition
+			*bytesFilePosition = *bytesFilePosition + (SECTOR_SIZE - currentSectorOffset);
+		}
+
+
+		//Test if exists any full sector to read
+		int numSectorsToRead = size / SECTOR_SIZE;
+		while(numSectorsToRead>0){
+
+			//where is my pointer now
+			currentBlock = *bytesFilePosition / getBlocksize();
+			currentSector = *bytesFilePosition % getBlocksize() / SECTOR_SIZE;
+
+			if (readDataBlockSector(currentBlock, currentSector, fileInode, (BYTE *)file_buffer) != 0)
+			{
+				printf("ERROR: Failed reading record\n");
+				return -1;
+			}
+			memcpy(buffer + bufferOffsetTotal, file_buffer, SECTOR_SIZE);
+
+			//updates the buffer offset
+			bufferOffsetTotal = SECTOR_SIZE + bufferOffsetTotal;
+
+			//update the filePosition
+			*bytesFilePosition = *bytesFilePosition + SECTOR_SIZE;
+
+			//update the size left to read
+			size = size - (SECTOR_SIZE);
+
+			//decrease the number of sectors to read
+			numSectorsToRead --;
+		}
+
+		//Test if exists any last sector offset to read
+		int sectorToReadOffset = size % SECTOR_SIZE;
+		if(sectorToReadOffset > 0){
+
+      //where is my pointer now
+			currentBlock = *bytesFilePosition / getBlocksize();
+			currentSector = *bytesFilePosition % getBlocksize() / SECTOR_SIZE;
+
+      //read sector
+			if (readDataBlockSector(currentBlock, currentSector, fileInode, (BYTE *)file_buffer) != 0)
+			{
+				printf("ERROR: Failed reading record\n");
+				return -1;
+			}
+
+      //save just the sectorToReadOffset in buffer
+			memcpy(buffer + bufferOffsetTotal, file_buffer, sectorToReadOffset);
+
+      //updates the buffer offset
+			bufferOffsetTotal = sectorToReadOffset + bufferOffsetTotal;
+
+			//update the filePosition
+			*bytesFilePosition = *bytesFilePosition + (SECTOR_SIZE - currentSectorOffset);
+		}
+	}
+  buffer[bufferOffsetTotal]='\0';
   return 0;
 }
 
