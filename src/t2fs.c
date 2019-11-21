@@ -14,15 +14,15 @@ Função:	Informa a identificação dos desenvolvedores do T2FS.
 -----------------------------------------------------------------------------*/
 int identify2(char *name, int size)
 {
-	initialize();
+    initialize();
 
-	BYTE identification[] = "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695";
-	memcpy(name, identification, size);
+    BYTE identification[] = "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695";
+    memcpy(name, identification, size);
 
-	// TODO: Remove this
-	mount(0);
+    // TODO: Remove this
+    mount(0);
 
-	return 0;
+    return 0;
 }
 
 /*-----------------------------------------------------------------------------
@@ -589,7 +589,9 @@ int read2(FILE2 handle, char *buffer, int size)
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
-	return -9;
+	int bytesRead = 0;
+	bytesRead = readFile(handle, buffer, size);
+	return bytesRead;
 }
 
 /*-----------------------------------------------------------------------------

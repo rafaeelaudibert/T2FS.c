@@ -746,7 +746,7 @@ int readFile(FILE2 handle, char *buffer, int size)
 		//Test if exists any first sector offset to read
 		if(currentSectorOffset>0){
 
-      if(size<(SECTOR_SIZE - currentSectorOffset)){
+      if(size < SECTOR_SIZE - currentSectorOffset){
         sizeSmallerThanOffset = SECTOR_SIZE - size - currentSectorOffset;
       }
 
@@ -759,19 +759,19 @@ int readFile(FILE2 handle, char *buffer, int size)
 			memcpy(buffer, file_buffer + currentSectorOffset, (SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset));
 
 			//updates the buffer offset
-			bufferOffsetTotal = SECTOR_SIZE - currentSectorOffset;
+			bufferOffsetTotal = SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset;
 
 			//update the size left to read
 			size = size - (SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset);
 
 			//update the filePosition
-			*bytesFilePosition = *bytesFilePosition + (SECTOR_SIZE - currentSectorOffset);
+			*bytesFilePosition += SECTOR_SIZE - currentSectorOffset;
 		}
 
 
 		//Test if exists any full sector to read
 		int numSectorsToRead = size / SECTOR_SIZE;
-		while(numSectorsToRead>0){
+		while(numSectorsToRead > 0){
 
 			//where is my pointer now
 			currentBlock = *bytesFilePosition / getBlocksize();
@@ -785,13 +785,13 @@ int readFile(FILE2 handle, char *buffer, int size)
 			memcpy(buffer + bufferOffsetTotal, file_buffer, SECTOR_SIZE);
 
 			//updates the buffer offset
-			bufferOffsetTotal = SECTOR_SIZE + bufferOffsetTotal;
+			bufferOffsetTotal += SECTOR_SIZE;
 
 			//update the filePosition
-			*bytesFilePosition = *bytesFilePosition + SECTOR_SIZE;
+			*bytesFilePosition += SECTOR_SIZE;
 
 			//update the size left to read
-			size = size - (SECTOR_SIZE);
+			size -= SECTOR_SIZE;
 
 			//decrease the number of sectors to read
 			numSectorsToRead --;
@@ -816,14 +816,15 @@ int readFile(FILE2 handle, char *buffer, int size)
 			memcpy(buffer + bufferOffsetTotal, file_buffer, sectorToReadOffset);
 
       //updates the buffer offset
-			bufferOffsetTotal = sectorToReadOffset + bufferOffsetTotal;
+			bufferOffsetTotal += sectorToReadOffset;
 
 			//update the filePosition
-			*bytesFilePosition = *bytesFilePosition + (SECTOR_SIZE - currentSectorOffset);
+			*bytesFilePosition += SECTOR_SIZE - currentSectorOffset;
 		}
 	}
-  buffer[bufferOffsetTotal]='\0';
-  return 0;
+  buffer[bufferOffsetTotal] = '\0';
+  printf("bufferOffsetTotal %d\n", bufferOffsetTotal);
+  return bufferOffsetTotal;
 }
 
 inline void openRoot()
