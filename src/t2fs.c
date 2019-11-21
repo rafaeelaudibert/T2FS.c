@@ -546,6 +546,9 @@ Função:	Função que abre um arquivo existente no disco.
 -----------------------------------------------------------------------------*/
 FILE2 open2(char *filename)
 {
+	//TODO remove
+	opendir2();
+
 	initialize();
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
@@ -573,6 +576,9 @@ Função:	Função usada para fechar um arquivo.
 -----------------------------------------------------------------------------*/
 int close2(FILE2 handle)
 {
+	//TODO remove
+	openRoot();
+
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
@@ -600,11 +606,15 @@ Função:	Função usada para realizar a escrita de uma certa quantidade
 -----------------------------------------------------------------------------*/
 int write2(FILE2 handle, char *buffer, int size)
 {
+	// TODO: Remove this line later on
+	opendir2();
+
 	initialize();
+
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
-	return -9;
+	return writeFile(handle, buffer, size);
 }
 
 /*-----------------------------------------------------------------------------
