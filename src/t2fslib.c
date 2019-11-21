@@ -305,11 +305,14 @@ int closeFile(FILE2 handle)
 {
 
     // Free dynamically allocated memory
-    free(open_files[handle]->record);
-    free(open_files[handle]->inode);
-    free(open_files[handle]);
+    if (open_files[handle] != NULL)
+    {
+        free(open_files[handle]->record);
+        free(open_files[handle]->inode);
+        free(open_files[handle]);
 
-    open_files[handle] = NULL;
+        open_files[handle] = NULL;
+    }
 
     return 0;
 }

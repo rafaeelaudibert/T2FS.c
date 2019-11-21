@@ -592,9 +592,6 @@ FILE2 open2(char *filename)
 	// Get the handler
 	FILE2 handler = openFile(record);
 
-	// Free dynamically allocated record memory
-	free(record);
-
 	return handler;
 }
 
