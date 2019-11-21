@@ -144,8 +144,6 @@ int formatPartition(int partition_number, int sectors_per_block)
     DWORD last_bbitmap = getBlockBitmapLastSector(&partition, &sb);
     for (DWORD sectorIdx = first_bbitmap; sectorIdx < last_bbitmap; ++sectorIdx)
     {
-        printf("ERROR: Failed writing block bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
-
         if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
         {
             printf("ERROR: Failed writing block bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
@@ -160,8 +158,6 @@ int formatPartition(int partition_number, int sectors_per_block)
     DWORD last_ibitmap = getInodeBitmapLastSector(&partition, &sb);
     for (DWORD sectorIdx = first_ibitmap; sectorIdx < last_ibitmap; ++sectorIdx)
     {
-        printf("ERROR: Failed writing inode bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
-
         if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
         {
             printf("ERROR: Failed writing inode bitmap sector %d on partition %d while formatting it.\n", sectorIdx, partition_number);
