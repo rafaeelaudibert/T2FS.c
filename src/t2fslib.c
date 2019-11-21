@@ -130,8 +130,6 @@ int formatPartition(int partition_number, int sectors_per_block)
     }
 
 
-    //nao era suposto de entrar aqui?
-
     for (DWORD sectorIdx = partition.firstSector + 1; sectorIdx < partition.firstSector + sb.blockSize; ++sectorIdx)
     {
         if (write_sector(sectorIdx, (BYTE *)zeroed_buffer) != 0)
