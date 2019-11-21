@@ -897,7 +897,6 @@ inline int getBlocksize()
 
 int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE *buffer)
 {
-    printf("AAASSSSS block sector %d %d\n", block_number, sector_number);
     // Doesn't try to access not existent blocks
     if (block_number >= (int)inode->blocksFileSize)
     {
@@ -969,7 +968,6 @@ int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE
 
 int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE *write_buffer)
 {
-    printf("AAASSSSS block sector %d %d\n", block_number, sector_number);
     // Doesn't try to access not existent blocks
     if (block_number >= (int)inode->blocksFileSize)
     {
