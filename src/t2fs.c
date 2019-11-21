@@ -20,33 +20,29 @@ int identify2(char *name, int size)
     memcpy(name, identification, size);
 
 	// TODO: Remove this
-	/*
-	format2(0, 2);
-	create2("arq1");
-	for (int i = 0; i < 4; i++) {
-		writeFile((FILE2)0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa_____", 256);
-		//writeFile((FILE2)0, "augustolindo", 10);
-	}
-    // TODO: Remove this
+	// format2(0, 2);
+	// create2("arq1");
+	// for (int i = 0; i < 4; i++) {
+	// 	writeFile((FILE2)0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa_____", 256);
+	// 	//writeFile((FILE2)0, "augustolindo", 10);
+	// }
+  //   // TODO: Remove this
     mount(0);
-
-	for (int i = 0; i < 128; i++) {
-		//writeFile((FILE2)0, "augustolindo", 10);
-		writeFile((FILE2)0, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb_____", 256);
-	}
-
-	for (int i = 0; i < 128; i++) {
-		//writeFile((FILE2)0, "augustolindo", 10);
-		writeFile((FILE2)0, "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc_____", 256);
-	}
-
-	for (int i = 0; i < 128; i++) {
-		//writeFile((FILE2)0, "augustolindo", 10);
-		writeFile((FILE2)0, "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd_____", 256);
-	}
-	*/
-
-	return 0;
+  //
+	// for (int i = 0; i < 128; i++) {
+	// 	//writeFile((FILE2)0, "augustolindo", 10);
+	// 	writeFile((FILE2)0, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb_____", 256);
+	// }
+  //
+	// for (int i = 0; i < 128; i++) {
+	// 	//writeFile((FILE2)0, "augustolindo", 10);
+	// 	writeFile((FILE2)0, "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc_____", 256);
+	// }
+  //
+	// for (int i = 0; i < 128; i++) {
+	// 	//writeFile((FILE2)0, "augustolindo", 10);
+	// 	writeFile((FILE2)0, "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd_____", 256);
+	// }
     return 0;
 }
 
