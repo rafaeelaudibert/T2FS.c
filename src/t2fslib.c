@@ -828,7 +828,6 @@ int readFile(FILE2 handle, char *buffer, int size)
 		}
 	}
   buffer[bufferOffsetTotal] = '\0';
-  printf("bufferOffsetTotal %d\n", bufferOffsetTotal);
   return bufferOffsetTotal;
 }
 
