@@ -592,6 +592,30 @@ FILE2 open2(char *filename)
 	// Get the handler
 	FILE2 handler = openFile(record);
 
+	// If it is a link, open recursively
+	if (record->TypeVal == TYPEVAL_LINK)
+	{
+		BYTE *link_filename = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
+		I_NODE *link_inode = getInode(record->inodeNumber);
+		if (read2(handler, link_filename, link_inode->bytesFileSize) != link_inode->bytesFileSize)
+		{
+			printf("ERROR: Error while trying to open a link to another file.\n");
+			return -1;
+		};
+
+		// Close this file
+		close2(handler);
+
+		// And try to open the other file
+		FILE2 link_handler = open2(link_filename);
+
+		// Free dynamically allocated buffer
+		free(link_filename);
+
+		return link_handler;
+	}
+
+	// Else, return the handler acquired by now
 	return handler;
 }
 
