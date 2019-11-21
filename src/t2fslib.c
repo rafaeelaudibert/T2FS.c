@@ -304,15 +304,18 @@ inline int unmountPartition()
 int closeFile(FILE2 handle)
 {
 
-    // Free dynamically allocated memory
-    if (open_files[handle] != NULL)
+    if (open_files[handle] == NULL)
     {
+        printf("ERROR: There is not an open file with such a handler.\n");
+        return -1;
+    }
+
+    // Free dynamically allocated memory
         free(open_files[handle]->record);
         free(open_files[handle]->inode);
         free(open_files[handle]);
 
         open_files[handle] = NULL;
-    }
 
     return 0;
 }
@@ -722,7 +725,7 @@ int readFile(FILE2 handle, char *buffer, int size)
             size -= SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset;
 
             //update the filePosition
-            *bytesFilePosition += SECTOR_SIZE- currentSectorOffset - sizeSmallerThanOffset;
+            *bytesFilePosition += SECTOR_SIZE - currentSectorOffset - sizeSmallerThanOffset;
         }
     }
 
