@@ -740,7 +740,11 @@ int readFile(FILE2 handle, char *buffer, int size)
 
   int sizeSmallerThanOffset = 0;
 
-	if(	*bytesFilePosition <= fileInode->bytesFileSize && size>0)
+  if(size > fileInode->bytesFileSize - *bytesFilePosition){
+    size = fileInode->bytesFileSize - *bytesFilePosition;
+  }
+
+	if(size>0)
 	{
 
 		//Test if exists any first sector offset to read
@@ -767,35 +771,36 @@ int readFile(FILE2 handle, char *buffer, int size)
 			//update the filePosition
 			*bytesFilePosition += SECTOR_SIZE - currentSectorOffset;
 		}
-
+  }
 
 		//Test if exists any full sector to read
 		int numSectorsToRead = size / SECTOR_SIZE;
-		while(numSectorsToRead > 0){
+	  while(numSectorsToRead > 0 ){
 
-			//where is my pointer now
-			currentBlock = *bytesFilePosition / getBlocksize();
-			currentSector = *bytesFilePosition % getBlocksize() / SECTOR_SIZE;
+		//where is my pointer now
+		currentBlock = *bytesFilePosition / getBlocksize();
+		currentSector = *bytesFilePosition % getBlocksize() / SECTOR_SIZE;
 
-			if (readDataBlockSector(currentBlock, currentSector, fileInode, (BYTE *)file_buffer) != 0)
-			{
-				printf("ERROR: Failed reading record\n");
-				return -1;
-			}
-			memcpy(buffer + bufferOffsetTotal, file_buffer, SECTOR_SIZE);
-
-			//updates the buffer offset
-			bufferOffsetTotal += SECTOR_SIZE;
-
-			//update the filePosition
-			*bytesFilePosition += SECTOR_SIZE;
-
-			//update the size left to read
-			size -= SECTOR_SIZE;
-
-			//decrease the number of sectors to read
-			numSectorsToRead --;
+		if (readDataBlockSector(currentBlock, currentSector, fileInode, (BYTE *)file_buffer) != 0)
+		{
+			printf("ERROR: Failed reading record\n");
+			return -1;
 		}
+		memcpy(buffer + bufferOffsetTotal, file_buffer, SECTOR_SIZE);
+
+		//updates the buffer offset
+		bufferOffsetTotal += SECTOR_SIZE;
+
+		//update the filePosition
+		*bytesFilePosition += SECTOR_SIZE;
+
+		//update the size left to read
+		size -= SECTOR_SIZE;
+
+		//decrease the number of sectors to read
+		numSectorsToRead --;
+	}
+  if(size>0){
 
 		//Test if exists any last sector offset to read
 		int sectorToReadOffset = size % SECTOR_SIZE;
