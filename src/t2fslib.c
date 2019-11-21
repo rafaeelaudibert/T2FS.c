@@ -406,7 +406,7 @@ inline int getFirstFreeOpenFilePosition()
     return -1;
 }
 
-inline DWORD getNewBlock(){
+inline DWORD getNewDataBlock(){
   DWORD newBlock = searchBitmap2(BITMAP_DADOS, 0);
   if (newBlock == -1)
   {
@@ -419,7 +419,6 @@ inline DWORD getNewBlock(){
 
 FILE2 writeFile(FILE2 handle, char *buffer, int size)
 {
-
   openBitmap2(getPartition()->firstSector);
 
   DWORD direct_quantity = getInodeDirectQuantity();
@@ -427,7 +426,7 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
   DWORD double_indirect_quantity = getInodeDoubleIndirectQuantity();
 
   int *bytesFilePosition = &(open_files[handle]->file_position);
-  //bytesFilePosition = 250;
+  int initialBytesFilePosition = *bytesFilePosition;
   RECORD *fileRecord = open_files[handle]->record;
   I_NODE *fileInode = open_files[handle]->inode;
 
@@ -437,10 +436,9 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
 
   BYTE *buffer_inode;
 
-  DWORD newDataBlock, newBlock;
+  DWORD newDataBlock, newInodeBlock;
   DWORD newDataSector;
   DWORD newDataSectorOffset;
-
 
   DWORD newSimpleIndirectionBlock;
   BYTE *simple_ind_buffer;
@@ -469,14 +467,16 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
       if (fileInode->blocksFileSize == direct_quantity)
       {
         printf("--Cria bloco DIRETO\n");
-        newBlock = getNewBlock();
-        fileInode->dataPtr[1] = newBlock;
+        newInodeBlock = getNewDataBlock();
+        fileInode->dataPtr[1] = newInodeBlock;
       }
+
       //------------------------------------------------------------
       //------------------------------------------------------------
       //------------------------------------------------------------
       else if (fileInode->blocksFileSize == direct_quantity + 1)
       {
+        printf("----Cria INDEX bloco INDIRETO\n");
         // Allocate block for the simple indirection block
 
         // Find bitmap entry
@@ -486,7 +486,6 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
           printf("ERROR: There is no space left to create a new directory entry.\n");
           return -1;
         }
-        printf("___simple %d\n", newSimpleIndirectionBlock);
 
         if (setBitmap2(BITMAP_DADOS, newSimpleIndirectionBlock, 1) != 0)
         {
@@ -496,9 +495,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
         fileInode->singleIndPtr = newSimpleIndirectionBlock;
 
         simple_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
-        printf("----Cria INDEX bloco INDIRETO\n");
-        newBlock = getNewBlock();
-        memcpy(simple_ind_buffer, &newBlock, sizeof(newBlock));
+        newInodeBlock = getNewDataBlock();
+        memcpy(simple_ind_buffer, &newInodeBlock, sizeof(newInodeBlock));
         if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + fileInode->singleIndPtr * getSuperblock()->blockSize, simple_ind_buffer) != 0)
         {
           printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
@@ -507,6 +505,7 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
       }
       else if (fileInode->blocksFileSize <= direct_quantity + simple_indirect_quantity)
       {
+        printf("----Cria bloco INDIRETO\n");
         // Middle single indirection block
         simple_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
         if (read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + fileInode->singleIndPtr * getSuperblock()->blockSize, simple_ind_buffer) != 0)
@@ -514,9 +513,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
           printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
           return -1;
         }
-        printf("----Cria bloco INDIRETO\n");
-        newBlock = getNewBlock();
-        memcpy(simple_ind_buffer + (fileInode->blocksFileSize - direct_quantity - 1) * sizeof(newBlock), &newBlock, sizeof(newBlock));
+        newInodeBlock = getNewDataBlock();
+        memcpy(simple_ind_buffer + (fileInode->blocksFileSize - direct_quantity - 1) * sizeof(newInodeBlock), &newInodeBlock, sizeof(newInodeBlock));
         if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + fileInode->singleIndPtr * getSuperblock()->blockSize, simple_ind_buffer) != 0)
         {
           printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
@@ -562,9 +560,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
         }
 
         simple_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
-        printf("    CRIA NOVO BLOCO\n");
-        newBlock = getNewBlock();
-        memcpy(simple_ind_buffer, &newBlock, sizeof(newBlock));
+        newInodeBlock = getNewDataBlock();
+        memcpy(simple_ind_buffer, &newInodeBlock, sizeof(newInodeBlock));
         if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + newSimpleIndirectionBlock * getSuperblock()->blockSize, simple_ind_buffer) != 0)
         {
           printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
@@ -601,9 +598,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
         }
 
         simple_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
-        printf("    CRIA NOVO BLOCO\n");
-        newBlock = getNewBlock();
-        memcpy(simple_ind_buffer, &newBlock, sizeof(newBlock));
+        newInodeBlock = getNewDataBlock();
+        memcpy(simple_ind_buffer, &newInodeBlock, sizeof(newInodeBlock));
         if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + newSimpleIndirectionBlock * getSuperblock()->blockSize, simple_ind_buffer) != 0)
         {
           printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
@@ -612,6 +608,7 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
       }
       else
       {
+        printf("----Cria bloco INDIRETO\n");
         // Discover where is the simpleIndBlock
         double_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
         if (read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + fileInode->doubleIndPtr * getSuperblock()->blockSize, double_ind_buffer))
@@ -627,9 +624,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
           printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
           return -1;
         }
-        printf("----Cria bloco INDIRETO\n");
-        newBlock = getNewBlock();
-        memcpy(simple_ind_buffer + (fileInode->blocksFileSize - direct_quantity - simple_indirect_quantity - 1) % simple_indirect_quantity * sizeof(newBlock), &newBlock, sizeof(newBlock));
+        newInodeBlock = getNewDataBlock();
+        memcpy(simple_ind_buffer + (fileInode->blocksFileSize - direct_quantity - simple_indirect_quantity - 1) % simple_indirect_quantity * sizeof(newInodeBlock), &newInodeBlock, sizeof(newInodeBlock));
         if (write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + simple_ind_ptr, simple_ind_buffer) != 0)
         {
           printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
@@ -640,7 +636,7 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
       //------------------------------------------------------------
       //------------------------------------------------------------
 
-      printf("--Encontra o ROOT Inode...\n");
+      printf("--Encontra o Inode para salvar novo bloco...\n");
   		DWORD inodeSector = fileRecord->inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
   		DWORD inodeSectorOffset = (fileRecord->inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
   		// Update and save inode
@@ -683,10 +679,10 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
     }
     printf("Posicao fim do loop: %d\n", *bytesFilePosition);
   }
-  printf("Finalizado.\n");
+  printf("Finalizada a escrita de dados.\n");
 
 
-  printf("Salva tamanho do arquivo...\n");
+  printf("Salvando tamanho do arquivo...\n");
   fileInode->bytesFileSize = *bytesFilePosition > fileInode->bytesFileSize ? *bytesFilePosition : fileInode->bytesFileSize;
   DWORD inodeSector = fileRecord->inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
   DWORD inodeSectorOffset = (fileRecord->inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
@@ -702,10 +698,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
     printf("ERROR: Failed writing record\n");
     return -1;
   }
-  printf("--Salvou o ROOT Inode...\n");
-
-
-  return 0;
+  printf("Salvou o tamanho do arquivo.\n");
+  return *bytesFilePosition - initialBytesFilePosition;
 }
 
 inline void openRoot()
