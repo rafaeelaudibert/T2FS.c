@@ -78,12 +78,6 @@ int unmountPartition();
     FUNCTIONS USED ON CLOSE2
 
 */
-// Return the position of a file given a handle
-int getFilePositionByHandle(FILE2 handle);
-
-// Return the position of a file given a name
-int getFilePositionByName(char *filename);
-
 // Make sure to free all the memory allocated for an open file
 // with  `handle` handle number
 int closeFile(FILE2 handle);
@@ -98,9 +92,6 @@ int countOpenedFiles();
 
 // Return next handler
 FILE2 getHandler();
-
-// Go to next handle
-void incrementHandler();
 
 // Open the file given by a record and load its information on memory
 FILE2 openFile(RECORD *record);

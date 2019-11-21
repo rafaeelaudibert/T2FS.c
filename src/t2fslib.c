@@ -307,53 +307,15 @@ inline int unmountPartition()
     return 0;
 }
 
-int getFilePositionByHandle(FILE2 handle)
-{
-    int position = -1;
-
-    for (int i = 0; i < MAX_OPEN_FILES; i++)
-    {
-        if (open_files[i] != NULL && open_files[i]->handle == handle)
-        {
-            position = i;
-            break;
-        }
-    }
-
-    return position;
-}
-
-int getFilePositionByName(char *filename)
-{
-    int position = -1;
-
-    for (int i = 0; i < MAX_OPEN_FILES; i++)
-    {
-        if (open_files[i] != NULL && strcmp(open_files[i]->record->name, filename) == 0)
-        {
-            position = i;
-            break;
-        }
-    }
-
-    return position;
-}
-
 int closeFile(FILE2 handle)
 {
-    int position = getFilePositionByHandle(handle);
 
-    if (position == -1)
-    {
-        printf("ERROR: There is no open file with such a handle: %d.\n", handle);
-        return -1;
-    }
+    // Free dynamically allocated memory
+    free(open_files[handle]->record);
+    free(open_files[handle]->inode);
+    free(open_files[handle]);
 
-    free(open_files[position]->record);
-    free(open_files[position]->inode);
-    free(open_files[position]);
-
-    open_files[position] = NULL;
+    open_files[handle] = NULL;
 
     return 0;
 }
@@ -371,18 +333,16 @@ int countOpenedFiles()
 
 inline FILE2 getHandler()
 {
-    return next_open_file_handler;
-}
+    for (int i = 0; i < MAX_OPEN_FILES; i++)
+        if (open_files[i] == NULL)
+            return i;
 
-inline void incrementHandler()
-{
-    next_open_file_handler++;
+    return (FILE2)-1;
 }
 
 FILE2 openFile(RECORD *record)
 {
     FILE2 handle = getHandler();
-    incrementHandler(); // Remember to increment handler for next file
 
     OPEN_FILE *file = (OPEN_FILE *)malloc(sizeof(OPEN_FILE));
     file->record = record;
@@ -390,14 +350,7 @@ FILE2 openFile(RECORD *record)
     file->file_position = 0;
     file->handle = handle;
 
-    int position = getFirstFreeOpenFilePosition();
-    if (position == -1)
-    {
-        printf("ERROR: There is no available handler to open the file.\n");
-        return -1;
-    }
-
-    open_files[position] = file;
+    open_files[handle] = file;
 
     return handle;
 }
