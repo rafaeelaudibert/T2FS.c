@@ -711,7 +711,6 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
 int readFile(FILE2 handle, char *buffer, int size)
 {
 	int *bytesFilePosition = &(open_files[handle]->file_position);
-  *bytesFilePosition = 30;
 	RECORD *fileRecord = open_files[handle]->record;
   I_NODE *fileInode = open_files[handle]->inode;
 
