@@ -20,7 +20,29 @@ int identify2(char *name, int size)
 	memcpy(name, identification, size);
 
 	// TODO: Remove this
-	mount(0);
+	/*
+	format2(0, 2);
+	create2("arq1");
+	for (int i = 0; i < 4; i++) {
+		writeFile((FILE2)0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa_____", 256);
+		//writeFile((FILE2)0, "augustolindo", 10);
+	}
+
+	for (int i = 0; i < 128; i++) {
+		//writeFile((FILE2)0, "augustolindo", 10);
+		writeFile((FILE2)0, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb_____", 256);
+	}
+
+	for (int i = 0; i < 128; i++) {
+		//writeFile((FILE2)0, "augustolindo", 10);
+		writeFile((FILE2)0, "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc_____", 256);
+	}
+
+	for (int i = 0; i < 128; i++) {
+		//writeFile((FILE2)0, "augustolindo", 10);
+		writeFile((FILE2)0, "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd_____", 256);
+	}
+	*/
 
 	return 0;
 }
@@ -324,7 +346,7 @@ FILE2 create2(char *filename)
 				return -1;
 			}
 		}
-		else if ((dirInode->blocksFileSize - 2) % simple_indirect_quantity == 0)
+		else if ((dirInode->blocksFileSize - 3) % simple_indirect_quantity == 0)
 		{
 			// Allocate bitmap for simpleIndirectionBlock
 			int newSimpleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
@@ -891,7 +913,7 @@ int sln2(char *linkname, char *filename)
 				return -1;
 			}
 		}
-		else if ((dirInode->blocksFileSize - 2) % simple_indirect_quantity == 0)
+		else if ((dirInode->blocksFileSize - 3) % simple_indirect_quantity == 0)
 		{
 			// Allocate bitmap for simpleIndirectionBlock
 			DWORD newSimpleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
@@ -1213,7 +1235,7 @@ int hln2(char *linkname, char *filename)
 						return -1;
 					}
 				}
-				else if ((dirInode->blocksFileSize - 2) % simple_indirect_quantity == 0)
+				else if ((dirInode->blocksFileSize - 3) % simple_indirect_quantity == 0)
 				{
 					// Allocate bitmap for simpleIndirectionBlock
 					DWORD newSimpleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
