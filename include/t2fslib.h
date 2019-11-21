@@ -108,7 +108,7 @@ int getFirstFreeOpenFilePosition();
 int getPointers(DWORD blockNumber, DWORD *pointers);
 
 //Clear the inode pointers, freeing the data bitmap
-int clearPointers(I_NODE *inode);
+void clearPointers(I_NODE *inode);
 
 /*
 

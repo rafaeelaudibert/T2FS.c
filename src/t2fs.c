@@ -14,10 +14,12 @@ Função:	Informa a identificação dos desenvolvedores do T2FS.
 -----------------------------------------------------------------------------*/
 int identify2(char *name, int size)
 {
-    initialize();
+	initialize();
 
-    BYTE identification[] = "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695";
-    memcpy(name, identification, size);
+	BYTE identification[] = "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695";
+	memcpy(name, identification, size);
+
+	mount(0);
 
 	// TODO: Remove this
 	// format2(0, 2);
@@ -26,24 +28,23 @@ int identify2(char *name, int size)
 	// 	writeFile((FILE2)0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa_____", 256);
 	// 	//writeFile((FILE2)0, "augustolindo", 10);
 	// }
-  //   // TODO: Remove this
-    mount(0);
-  //
+	//   // TODO: Remove this
+	//
 	// for (int i = 0; i < 128; i++) {
 	// 	//writeFile((FILE2)0, "augustolindo", 10);
 	// 	writeFile((FILE2)0, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb_____", 256);
 	// }
-  //
+	//
 	// for (int i = 0; i < 128; i++) {
 	// 	//writeFile((FILE2)0, "augustolindo", 10);
 	// 	writeFile((FILE2)0, "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc_____", 256);
 	// }
-  //
+	//
 	// for (int i = 0; i < 128; i++) {
 	// 	//writeFile((FILE2)0, "augustolindo", 10);
 	// 	writeFile((FILE2)0, "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd_____", 256);
 	// }
-    return 0;
+	return 0;
 }
 
 /*-----------------------------------------------------------------------------
@@ -166,7 +167,8 @@ FILE2 create2(char *filename)
 			};
 			break;
 		}
-		if(record.TypeVal == TYPEVAL_INVALIDO){
+		if (record.TypeVal == TYPEVAL_INVALIDO)
+		{
 			break;
 		}
 		bytesUntilFreeSpace = bytesUntilFreeSpace + RECORD_SIZE;
@@ -448,8 +450,8 @@ int delete2(char *filename)
 	// Configure bitmap
 	openBitmap2(getPartition()->firstSector);
 
+	RECORD *record;
 	I_NODE *dirInode = getInode(0);
-	RECORD *record = (RECORD *)malloc(sizeof(RECORD));
 	RECORD *recordAux = (RECORD *)malloc(sizeof(RECORD));
 	DWORD bytesFileSizeUntilRecord = 0;
 	record = NULL;
@@ -460,16 +462,17 @@ int delete2(char *filename)
 	{
 		getRecordByNumber(i, recordAux);
 		if ((strcmp(recordAux->name, filename) == 0) && (recordAux->TypeVal != TYPEVAL_INVALIDO))
-			{
-				record = recordAux;
-				break;
-			}
+		{
+			record = recordAux;
+			break;
+		}
 
 		bytesFileSizeUntilRecord = RECORD_SIZE + bytesFileSizeUntilRecord;
 	}
 
 	//Test if the record was found
-	if (!record){
+	if (record == NULL)
+	{
 		printf("ERROR: There is no file with name %s.\n", filename);
 		return -1;
 	}
@@ -490,7 +493,7 @@ int delete2(char *filename)
 		return -1;
 	}
 
-	memcpy(record_buffer + recordSectorOffset, record, sizeof(RECORD));
+	memcpy((BYTE *)record_buffer + recordSectorOffset, (BYTE *)record, sizeof(RECORD));
 	if (writeDataBlockSector(recordBlock, recordSector, dirInode, (BYTE *)record_buffer) != 0)
 	{
 		printf("ERROR: Failed writing record\n");
@@ -519,8 +522,8 @@ int delete2(char *filename)
 
 	//updates RefCounter and test if exists any hardlink.
 	inode->RefCounter = inode->RefCounter - 1;
-	if(inode->RefCounter > 0){
-
+	if (inode->RefCounter > 0)
+	{
 		// Compute where the inode is
 		DWORD inodeSector = record->inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
 		DWORD inodeSectorOffset = (record->inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
@@ -550,10 +553,9 @@ int delete2(char *filename)
 	setBitmap2(BITMAP_INODE, record->inodeNumber, 0);
 
 	// Free dynamically allocated memory
-	// free(record_buffer);
-	// free(dirInode);
-	// free(record);
-	// free(recordAux);
+	free(record_buffer);
+	free(dirInode);
+	free(recordAux);
 
 	// Remember to close the opened bitmap
 	closeBitmap2();
@@ -567,7 +569,7 @@ Função:	Função que abre um arquivo existente no disco.
 -----------------------------------------------------------------------------*/
 FILE2 open2(char *filename)
 {
-	//TODO remove
+	//TODO remove this
 	opendir2();
 
 	initialize();
@@ -583,11 +585,15 @@ FILE2 open2(char *filename)
 	RECORD *record = (RECORD *)malloc(sizeof(RECORD));
 	if (getRecordByName(filename, record) != 0)
 	{
-		printf("Couldn't find such file with filename %s.\n", filename);
+		printf("Couldn't find file with name %s.\n", filename);
 		return -1;
 	}
 
+	// Get the handler
 	FILE2 handler = openFile(record);
+
+	// Free dynamically allocated record memory
+	free(record);
 
 	return handler;
 }
@@ -598,7 +604,7 @@ Função:	Função usada para fechar um arquivo.
 int close2(FILE2 handle)
 {
 	//TODO remove
-	openRoot();
+	opendir2();
 
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
@@ -616,8 +622,7 @@ int read2(FILE2 handle, char *buffer, int size)
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
-	int bytesRead = 0;
-	bytesRead = readFile(handle, buffer, size);
+	int bytesRead = readFile(handle, buffer, size);
 	return bytesRead;
 }
 
@@ -635,7 +640,8 @@ int write2(FILE2 handle, char *buffer, int size)
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
-	return writeFile(handle, buffer, size);
+	int bytesWritten = writeFile(handle, buffer, size);
+	return bytesWritten;
 }
 
 /*-----------------------------------------------------------------------------
@@ -681,7 +687,7 @@ int readdir2(DIRENT2 *dentry)
 
 	// If read an invalid record, go to the next
 	if (record.TypeVal == TYPEVAL_INVALIDO)
-			return readdir2(dentry);
+		return readdir2(dentry);
 
 	nextDirectoryEntryValid();
 
@@ -754,7 +760,6 @@ int sln2(char *linkname, char *filename)
 	setBitmap2(BITMAP_INODE, inodeNumber, 1);
 	setBitmap2(BITMAP_DADOS, blockNum, 1);
 
-
 	// Copy information to the new record
 	strcpy(record.name, linkname);
 	record.TypeVal = TYPEVAL_LINK;
@@ -785,7 +790,7 @@ int sln2(char *linkname, char *filename)
 	int inodeSectorOffset = (inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
 
 	// Create and save inode
-	I_NODE inode = {(DWORD)1, (DWORD)strlen(filename)+1, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
+	I_NODE inode = {(DWORD)1, (DWORD)strlen(filename) + 1, {blockNum, (DWORD)0}, (DWORD)0, (DWORD)0, (DWORD)1, (DWORD)0};
 	BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
 	if (read_sector(getInodesFirstSector(getPartition(), getSuperblock()) + inodeSector, buffer_inode) != 0)
 	{
@@ -1004,7 +1009,8 @@ int sln2(char *linkname, char *filename)
 	//Copia o nome do arquivo para o buffer de escrita
 	BYTE *data_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
 	//TO-DO: Trocar pra memcpy (ou nao)
-	for (int i = 0;  i < sizeof(BYTE) * SECTOR_SIZE; i++){
+	for (int i = 0; i < sizeof(BYTE) * SECTOR_SIZE; i++)
+	{
 		data_buffer[i] = filename[i];
 	}
 
@@ -1023,7 +1029,6 @@ int sln2(char *linkname, char *filename)
 	}
 	printf("Reading memory of link's inode: %s\n", data_buffer);
 	//END TODO REMOVE---------------------------------------------------
-
 
 	// Free dynamically allocated memory
 	free(record_buffer);
@@ -1064,13 +1069,14 @@ int hln2(char *linkname, char *filename)
 		if (strcmp(record.name, linkname) == 0 && record.TypeVal == TYPEVAL_REGULAR)
 		{
 			printf("ERROR: Trying to create hard link with same name as other file.\n");
-			return -9;
+			return -1;
 		}
 	}
 
 	for (int i = 0; i < filesQuantity; i++)
 	{
 		getRecordByNumber(i, &record);
+
 		//If found a file with the given name
 		if (strcmp(record.name, filename) == 0)
 		{
