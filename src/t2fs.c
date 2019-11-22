@@ -35,9 +35,10 @@ int format2(int partition, int sectors_per_block)
 {
 	initialize();
 
+	// Partition doesn't exist
 	if (partition >= (int)(getMBR()->partitionQuantity))
 	{
-		printf("ERROR: ERROR: There is no partition %d in disk.\n", partition);
+		printf("ERROR: There is no partition %d in disk.\n", partition);
 		return -1;
 	}
 
@@ -84,7 +85,7 @@ int mount(int partition)
 /*-----------------------------------------------------------------------------
 Função:	Desmonta a partição atualmente montada, liberando o ponto de montagem.
 -----------------------------------------------------------------------------*/
-int unmount(void)
+int umount(void)
 {
 	initialize();
 

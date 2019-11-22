@@ -32,6 +32,11 @@ void cmdSeek(void);
 void cmdHln(void);
 void cmdSln(void);
 
+void cmdMnt(void);
+void cmdUmnt(void);
+void cmdOpendir(void);
+void cmdClosedir(void);
+
 void cmdCp(void);
 void cmdFscp(void);
 
@@ -90,6 +95,11 @@ char helpHln[] = "[lnk] [file] -> create hard link [lnk] to [file]";
 char helpSln[] = "[lnk] [file] -> create soft link [lnk] to [file]";
 char helpFormat[] = "[bs]         -> format virtual disk";
 
+char helpMnt[] = "[prt]      -> mount partition [prt]";
+char helpUmnt[] = "          -> unmount currently mounted partition";
+char helpOpendir[] = "          -> open root directory";
+char helpClosedir[] = "          -> close root directory";
+
 char helpCopy[] = "[src] [dst]  -> copy files: [src] -> [dst]";
 char helpFscp[] = "[src] [dst]  -> copy files: [src] -> [dst]"
                   "\n    fscp -t [src] [dst]  -> copy HostFS to T2FS"
@@ -124,6 +134,14 @@ struct
     {"hln", helpHln, cmdHln},
     {"sln", helpSln, cmdSln},
     {"format", helpFormat, cmdFormat},
+
+    {"mnt", helpMnt, cmdMnt},
+    {"mount", helpMnt, cmdMnt},
+    {"umnt", helpUmnt, cmdUmnt},
+    {"umount", helpUmnt, cmdUmnt},
+    {"unmount", helpUmnt, cmdUmnt},
+    {"opendir", helpOpendir, cmdOpendir},
+    {"closedir", helpClosedir, cmdClosedir},
 
     {"cp", helpCopy, cmdCp},
     {"fscp", helpFscp, cmdFscp},
@@ -558,6 +576,75 @@ void cmdFormat(void)
     }
 
     printf("Disk formated\n");
+}
+
+/**
+ * Chama a função que monta a partição
+ */
+void cmdMnt(void)
+{
+    int partition;
+
+    char *token = strtok(NULL, " \t");
+
+    if (token == NULL)
+    {
+        printf("Missing partition to mount.\n");
+        return;
+    }
+    if (sscanf(token, "%d", &partition) < 0)
+    {
+        printf("Invalid partition\n");
+        return;
+    }
+
+    int err = mount(partition);
+    if (err)
+    {
+        printf("Error: %d\n", err);
+        return;
+    }
+
+    printf("Partition mounted\n");
+}
+
+/**
+ * Chama a função que "unmonta" a partição
+ */
+void cmdUmnt(void)
+{
+    int err = umount();
+    if (err)
+    {
+        printf("Error: %d\n", err);
+        return;
+    }
+
+    printf("Partition unmounted\n");
+}
+
+void cmdOpendir(void)
+{
+    int err = opendir2();
+    if (err)
+    {
+        printf("Error: %d\n", err);
+        return;
+    }
+
+    printf("Root directory opened\n");
+}
+
+void cmdClosedir(void)
+{
+    int err = closedir2();
+    if (err)
+    {
+        printf("Error: %d\n", err);
+        return;
+    }
+
+    printf("Root directory closed\n");
 }
 
 /**
