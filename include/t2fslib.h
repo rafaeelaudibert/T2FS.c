@@ -110,6 +110,9 @@ int getPointers(DWORD blockNumber, DWORD *pointers);
 //Clear the inode pointers, freeing the data bitmap
 void clearPointers(I_NODE *inode);
 
+//return the handle of the file, given his name
+int findHandleByFileName(char* filename);
+
 /*
 
     FUNCTIONS USED ON READ2

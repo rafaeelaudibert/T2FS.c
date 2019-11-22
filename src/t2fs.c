@@ -470,6 +470,13 @@ int delete2(char *filename)
 		return -1;
 	}
 
+	//if the file was open, close it
+	int handle = findHandleByFileName(filename);;
+	while(handle>=0){
+		closeFile(handle);
+		handle = findHandleByFileName(filename);
+	}
+
 	//update the record to invalid
 	record->TypeVal = TYPEVAL_INVALIDO;
 
@@ -492,7 +499,6 @@ int delete2(char *filename)
 		printf("ERROR: Failed writing record\n");
 		return -1;
 	}
-
 	//get the inode of the record
 	I_NODE *inode = getInode(record->inodeNumber);
 

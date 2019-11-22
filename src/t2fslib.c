@@ -319,6 +319,16 @@ int closeFile(FILE2 handle)
     return 0;
 }
 
+int findHandleByFileName(char* filename)
+{
+
+    for(int i = 0; i < MAX_OPEN_FILES; i++){
+        if(open_files[i] && (strcmp(filename, open_files[i]->record->name)) == 0)
+          return i;
+    }
+    return -1;
+}
+
 int countOpenedFiles()
 {
     int counter = 0;
@@ -951,9 +961,9 @@ int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE
 
     // Read without indirection
     DWORD block_to_read = no_ind_sector;
-    printf("----------block_to_read %d\n", block_to_read);
+    // printf("----------block_to_read %d\n", block_to_read);
     DWORD sector_to_read = block_to_read + sector_number;
-    printf("----------sector_to_read %d\n", sector_to_read);
+    // printf("----------sector_to_read %d\n", sector_to_read);
 
     if ((read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + sector_to_read, buffer)) != 0)
     {
@@ -1006,7 +1016,7 @@ int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYT
 
     if (block_number >= (int)direct_quantity)
     {
-        printf("------Single Indirection\n");
+        // printf("------Single Indirection\n");
         // Read with simple indirection
         DWORD shifted_block_number = block_number - direct_quantity; // To find out which block inside the indirection we should read
 
@@ -1024,11 +1034,8 @@ int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYT
     }
 
     // Read without indirection
-    printf("------Without Indirection\n");
     DWORD block_to_write = no_ind_sector;
     DWORD sector_to_write = block_to_write + sector_number;
-    printf("------Real Block: %d\n", block_to_write);
-    printf("------Real Sector: %d\n", sector_to_write);
 
     if ((write_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + sector_to_write, write_buffer)) != 0)
     {
