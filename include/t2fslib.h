@@ -111,7 +111,7 @@ int getPointers(DWORD blockNumber, DWORD *pointers);
 void clearPointers(I_NODE *inode);
 
 //return the handle of the file, given his name
-int findHandleByFileName(char* filename);
+int getHandleByFilename(char *filename);
 
 /*
 

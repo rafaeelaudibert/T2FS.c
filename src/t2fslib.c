@@ -319,13 +319,13 @@ int closeFile(FILE2 handle)
     return 0;
 }
 
-int findHandleByFileName(char* filename)
+int getHandleByFilename(char *filename)
 {
 
-    for(int i = 0; i < MAX_OPEN_FILES; i++){
-        if(open_files[i] && (strcmp(filename, open_files[i]->record->name)) == 0)
-          return i;
-    }
+    for (int i = 0; i < MAX_OPEN_FILES; i++)
+        if (open_files[i] && (strcmp(filename, open_files[i]->record->name)) == 0)
+            return i;
+
     return -1;
 }
 
