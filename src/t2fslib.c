@@ -1072,31 +1072,30 @@ void clearPointers(I_NODE *inode)
     int numOfBlocks = inode->blocksFileSize;
 
     //Direct
-    if (numOfBlocks>0)
+    if (numOfBlocks > 0)
         setBitmap2(BITMAP_DADOS, inode->dataPtr[0], 0);
 
-    numOfBlocks --;
+    numOfBlocks--;
 
-    if (numOfBlocks>0)
+    if (numOfBlocks > 0)
         setBitmap2(BITMAP_DADOS, inode->dataPtr[1], 0);
 
-    numOfBlocks --;
+    numOfBlocks--;
 
     // Simple Indirection
-    if (numOfBlocks>0)
+    if (numOfBlocks > 0)
     {
         getPointers(inode->singleIndPtr, pointers);
         for (i = 0; i < PTR_PER_SECTOR * getBlocksize(); i++)
-            if (numOfBlocks>0)
+            if (numOfBlocks > 0)
             {
-              numOfBlocks --;
-              setBitmap2(BITMAP_DADOS, pointers[i], 0);
+                numOfBlocks--;
+                setBitmap2(BITMAP_DADOS, pointers[i], 0);
             }
-
     }
 
     // Double Indirection
-    if (numOfBlocks>0)
+    if (numOfBlocks > 0)
     {
         getPointers(inode->doubleIndPtr, doublePointers);
         for (j = 0; j < PTR_PER_SECTOR * getBlocksize(); j++)
@@ -1105,11 +1104,11 @@ void clearPointers(I_NODE *inode)
             {
                 getPointers(doublePointers[j], pointers);
                 for (i = 0; i < PTR_PER_SECTOR * getBlocksize(); i++)
-                    if (numOfBlocks>0){
-                      numOfBlocks --;
-                      setBitmap2(BITMAP_DADOS, pointers[i], 0);
+                    if (numOfBlocks > 0)
+                    {
+                        numOfBlocks--;
+                        setBitmap2(BITMAP_DADOS, pointers[i], 0);
                     }
-
             }
         }
     }
