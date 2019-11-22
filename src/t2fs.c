@@ -1005,6 +1005,12 @@ int hln2(char *linkname, char *filename)
 	if (!isPartitionMounted() || !isRootOpened())
 		return -1;
 
+	if (strlen(linkname) > 50 || strlen(filename) > 50)
+	{
+		printf("ERROR: Invalid linkname or filename.\n");
+		return -1;
+	}
+
 	// Configure bitmap
 	openBitmap2(getPartition()->firstSector);
 
