@@ -1087,7 +1087,7 @@ int hln2(char *linkname, char *filename)
 	for (int i = 0; i < filesQuantity; i++)
 	{
 		getRecordByNumber(i, &record);
-		if (strcmp(record.name, linkname) == 0 && record.TypeVal == TYPEVAL_REGULAR)
+		if (strcmp(record.name, linkname) == 0 && record.TypeVal != TYPEVAL_INVALIDO)
 		{
 			printf("ERROR: Trying to create hard link with same name as other file.\n");
 			return -1;
@@ -1099,7 +1099,7 @@ int hln2(char *linkname, char *filename)
 		getRecordByNumber(i, &record);
 
 		//If found a file with the given name
-		if (strcmp(record.name, filename) == 0)
+		if (strcmp(record.name, filename) == 0 && record.TypeVal != TYPEVAL_INVALIDO)
 		{
 
 			// Copy information from file Record to hardLinkRecord
