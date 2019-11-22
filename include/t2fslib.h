@@ -110,12 +110,23 @@ int getPointers(DWORD blockNumber, DWORD *pointers);
 //Clear the inode pointers, freeing the data bitmap
 void clearPointers(I_NODE *inode);
 
+//return the handle of the file, given his name
+int getHandleByFilename(char *filename);
+
 /*
 
     FUNCTIONS USED ON READ2
 
 */
 int readFile(FILE2 handle, char *buffer, int size);
+
+/*
+
+    FUNCTIONS USED ON WRITE2
+
+*/
+FILE2 writeFile(FILE2 handle, char *buffer, int size);
+
 /*
 
     FUNCTIONS USED ON OPENDIR2
@@ -146,9 +157,6 @@ int getCurrentDirectoryEntryIndex();
 
 // Increments the current `directoryEntryIndex`
 void nextDirectoryEntry();
-
-//Increments the current `directoryEntryValidIndex`
-void nextDirectoryEntryValid();
 
 /*
 
