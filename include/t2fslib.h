@@ -119,6 +119,14 @@ int getHandleByFilename(char *filename);
 
 */
 int readFile(FILE2 handle, char *buffer, int size);
+
+/*
+
+    FUNCTIONS USED ON WRITE2
+
+*/
+FILE2 writeFile(FILE2 handle, char *buffer, int size);
+
 /*
 
     FUNCTIONS USED ON OPENDIR2

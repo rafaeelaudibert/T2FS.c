@@ -52,23 +52,6 @@ int readMBR()
         return -1;
     }
 
-    if (debug)
-    {
-        printf("MBR Version: %d\n", (int)mbr->version);
-        printf("MBR sectorSize: %d\n", (int)mbr->sectorSize);
-        printf("MBR PartitionTableByteInit: %d\n", (int)mbr->partitionsTableByteInit);
-        printf("MBR partitionQuantity: %d\n", (int)mbr->partitionQuantity);
-
-        for (int i = 0; i < MAX_PARTITION_NUMBER && i < mbr->partitionQuantity; i++)
-        {
-            printf("PARTITION %d ---- %s\n", i, mbr->partitions[i].name);
-            printf("First Sector %d\n", mbr->partitions[i].firstSector);
-            printf("Last Sector %d\n", mbr->partitions[i].lastSector);
-        }
-
-        printf("		-----\n");
-    }
-
     return 0;
 }
 
@@ -89,15 +72,6 @@ int formatPartition(int partition_number, int sectors_per_block)
     DWORD inodeQuantity = ceil(inodeOccupiedBytes / 32.0);
     DWORD inodeBitmapSizeInBlocks = ceil(inodeQuantity / 8.0 / blockSizeInBytes);
 
-    printf("sectorQuantity: %u\n", sectorQuantity);
-    printf("partitionSizeInBytes: %u\n", partitionSizeInBytes);
-    printf("blockSizeInBytes: %u\n", blockSizeInBytes);
-    printf("blockQuantity: %u\n", blockQuantity);
-    printf("inodeOccupiedBlocks: %u\n", inodeOccupiedBlocks);
-    printf("inodeOccupiedBytes: %u\n", inodeOccupiedBytes);
-    printf("inodeQuantity: %u\n", inodeQuantity);
-    printf("inodeBitmapSizeInBlocks: %u\n", inodeBitmapSizeInBlocks);
-
     // Preenche super block
     BYTE superblock_id[] = "T2FS";
     memcpy(sb.id, superblock_id, 4);
@@ -109,13 +83,6 @@ int formatPartition(int partition_number, int sectors_per_block)
     sb.blockSize = (WORD)sectors_per_block;
     sb.diskSize = (DWORD)sectorQuantity / sectors_per_block;
     sb.Checksum = computeChecksum(&sb);
-
-    printf("freeBlocksBitmapSize: %hd\n", sb.freeBlocksBitmapSize);
-    printf("freeInodeBitmapSize: %hd\n", sb.freeInodeBitmapSize);
-    printf("inodeAreaSize: %hd\n", sb.inodeAreaSize);
-    printf("blockSize: %hd\n", sb.blockSize);
-    printf("diskSize: %u\n", sb.diskSize);
-    printf("Checksum: %u\n", sb.Checksum);
 
     // Fill buffer with superBlock
     memcpy(buffer, (BYTE *)(&sb), sizeof(sb));
@@ -135,7 +102,7 @@ int formatPartition(int partition_number, int sectors_per_block)
             return -1;
         }
 
-        printf("Formatted zeroed superBlock sector %d for partition %d.\n", sectorIdx, partition_number);
+        printf("INFO: Formatted zeroed superBlock sector %d for partition %d.\n", sectorIdx, partition_number);
     }
 
     // Criar/limpar bitmap dos blocos com o zeroed_buffer
@@ -149,7 +116,7 @@ int formatPartition(int partition_number, int sectors_per_block)
             return -1;
         }
 
-        printf("Formatted free block bitmap sector %d\n", sectorIdx);
+        printf("INFO: Formatted free block bitmap sector %d\n", sectorIdx);
     }
 
     // Criar/limpar bitmap dos inodes
@@ -163,7 +130,7 @@ int formatPartition(int partition_number, int sectors_per_block)
             return -1;
         }
 
-        printf("Formatted free inode bitmap sector %d\n", sectorIdx);
+        printf("INFO: Formatted free inode bitmap sector %d\n", sectorIdx);
     }
 
     // Lembrar de liberar memória utilizada pelos buffers
@@ -217,7 +184,7 @@ int createRootFolder(int partition_number)
         printf("ERROR: Couldn't write root folder inode.\n");
         return -1;
     };
-    printf("DEBUG: Wrote root folder inode sector on %d sector\n", getInodesFirstSector(&partition, &sb));
+    printf("INFO: Wrote root folder inode sector on %d sector\n", getInodesFirstSector(&partition, &sb));
     memset(inode_buffer, 0, sizeof(BYTE) * SECTOR_SIZE);
     for (int i = 1; i < sb.blockSize; ++i)
     {
@@ -226,17 +193,16 @@ int createRootFolder(int partition_number)
             printf("ERROR: Couldn't write root folder inode.\n");
             return -1;
         }
-        printf("DEBUG: Wrote extra root folder inode sector %d\n", getInodesFirstSector(&partition, &sb) + i);
+        printf("INFO: Wrote extra root folder inode sector %d\n", getInodesFirstSector(&partition, &sb) + i);
     }
     if (setBitmap2(BITMAP_INODE, 0, 1) != 0)
     {
         printf("ERROR: Failed setting bitmap for root folder inode.\n");
         return -1;
     };
-    printf("Set inode bitmap for root folder.\n");
+    printf("INFO: Set inode bitmap for root folder.\n");
 
     // Create folder data block, emptied
-    printf("Will write root folder first data block on sector %d.\n", getDataBlocksFirstSector(&partition, &sb));
     BYTE *data_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
     for (int i = 0; i < sb.blockSize; ++i)
     {
@@ -245,7 +211,7 @@ int createRootFolder(int partition_number)
             printf("ERROR: Couldn't write root folder data block.\n");
             return -1;
         }
-        printf("DEBUG: Wrote root folder data on sector %d\n", getDataBlocksFirstSector(&partition, &sb) + i);
+        printf("INFO: Wrote root folder data on sector %d\n", getDataBlocksFirstSector(&partition, &sb) + i);
     }
     if (setBitmap2(BITMAP_DADOS, 0, 1) != 0)
     {
@@ -253,7 +219,7 @@ int createRootFolder(int partition_number)
         setBitmap2(BITMAP_INODE, 0, 0); // Revert changed bitmap value
         return -1;
     };
-    printf("Set data bitmap for root folder.\n");
+    printf("INFO: Set data bitmap for root folder.\n");
 
     // Remember to close bitmap
     closeBitmap2();
@@ -399,10 +365,6 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
     RECORD *fileRecord = open_files[handle]->record;
     I_NODE *fileInode = open_files[handle]->inode;
 
-    printf("\n\n\nArquivo aberto: %s\n", fileRecord->name);
-    printf("Posicao comeco escrita %d\n", *bytesFilePosition);
-    printf("Inode Size: %d\n", fileInode->blocksFileSize);
-
     BYTE *buffer_inode;
 
     DWORD newDataBlock, newInodeBlock;
@@ -419,25 +381,17 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
     DWORD bufferByteLocation = 0;
     while (bufferByteLocation < (DWORD)size)
     {
-        printf("\nEntra no Loop de escrita\n");
-        printf("Posicao começo do loop: %d\n", *bytesFilePosition);
-
         newDataBlock = *bytesFilePosition / getBlocksize();
         newDataSector = *bytesFilePosition % getBlocksize() / SECTOR_SIZE;
         newDataSectorOffset = *bytesFilePosition % SECTOR_SIZE;
-        printf("Bloco do arquivo: %d\n", newDataBlock);
-        printf("Setor do arquivo: %d\n", newDataSector);
-        printf("Offset do arquivo: %d\n", newDataSectorOffset);
 
         //===============New block allocation========================
         if (newDataBlock + 1 > fileInode->blocksFileSize)
         {
-            printf("--Nao existe bloco no Root INODE:\n");
             fileInode->blocksFileSize++;
 
             if (fileInode->blocksFileSize == direct_quantity)
             {
-                printf("--Cria bloco DIRETO\n");
                 newInodeBlock = getNewDataBlock();
                 fileInode->dataPtr[1] = newInodeBlock;
             }
@@ -447,7 +401,6 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
             //------------------------------------------------------------
             else if (fileInode->blocksFileSize == direct_quantity + 1)
             {
-                printf("----Cria INDEX bloco INDIRETO\n");
                 // Allocate block for the simple indirection block
 
                 // Find bitmap entry
@@ -476,7 +429,6 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
             }
             else if (fileInode->blocksFileSize <= direct_quantity + simple_indirect_quantity)
             {
-                printf("----Cria bloco INDIRETO\n");
                 // Middle single indirection block
 
                 simple_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
@@ -484,7 +436,6 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
                 BYTE sectorInBlock = (DWORD)((fileInode->blocksFileSize - direct_quantity - 1) * sizeof(newInodeBlock)) / SECTOR_SIZE;
                 BYTE offsetInSector = (DWORD)((fileInode->blocksFileSize - direct_quantity - 1) * sizeof(newInodeBlock)) % SECTOR_SIZE;
 
-                printf("============Sector read %d\n", (getDataBlocksFirstSector(getPartition(), getSuperblock()) + fileInode->singleIndPtr * getSuperblock()->blockSize) + sectorInBlock);
                 if (read_sector((getDataBlocksFirstSector(getPartition(), getSuperblock()) + fileInode->singleIndPtr * getSuperblock()->blockSize) + sectorInBlock, simple_ind_buffer) != 0)
                 {
                     printf("ERROR: There was an error while trying to allocate space for a new directory entry.\n");
@@ -502,9 +453,8 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
                     return -1;
                 }
             }
-            else if (fileInode->blocksFileSize == direct_quantity + simple_indirect_quantity + 1) // TODO: Need to allocate blocks for the double indirection
+            else if (fileInode->blocksFileSize == direct_quantity + simple_indirect_quantity + 1)
             {
-                printf("----Cria INDEX INDIRETO DUPLO\n");
                 // Allocate bitmap for doubleIndirectionBlock
                 newDoubleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
                 if (newDoubleIndirectionBlock == -1)
@@ -551,7 +501,6 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
             }
             else if ((fileInode->blocksFileSize - 3) % simple_indirect_quantity == 0)
             {
-                printf("----Cria bloco INDIRETO DUPLO\n");
                 // Allocate bitmap for simpleIndirectionBlock
                 newSimpleIndirectionBlock = searchBitmap2(BITMAP_DADOS, 0);
                 if (newSimpleIndirectionBlock == -1)
@@ -589,7 +538,6 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
             }
             else
             {
-                printf("----Cria bloco INDIRETO\n");
                 // Discover where is the simpleIndBlock
                 double_ind_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
 
@@ -622,7 +570,6 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
             //------------------------------------------------------------
             //------------------------------------------------------------
 
-            printf("--Encontra o Inode para salvar novo bloco...\n");
             DWORD inodeSector = fileRecord->inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
             DWORD inodeSectorOffset = (fileRecord->inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
             // Update and save inode
@@ -638,7 +585,6 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
                 printf("ERROR: Failed writing record\n");
                 return -1;
             }
-            printf("--Salvou o ROOT Inode...\n");
         }
         //===============End new block allocation========================
 
@@ -648,28 +594,21 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
             printf("ERROR: Failed reading record\n");
             return -1;
         }
-        printf("Salvando os dados no buffer...\n");
         for (DWORD dataByteLocation = newDataSectorOffset; bufferByteLocation < (DWORD)size; dataByteLocation++, bufferByteLocation++)
         {
             if (dataByteLocation >= sizeof(BYTE) * SECTOR_SIZE)
-            {
-                printf("Chegou no final do setor...\n");
                 break;
-            }
+
             (*bytesFilePosition)++;
             data_buffer[dataByteLocation] = buffer[bufferByteLocation];
         }
-        printf("Escrevendo os dados do buffer...\n");
         if (writeDataBlockSector(newDataBlock, newDataSector, fileInode, (BYTE *)data_buffer) != 0)
         {
             printf("ERROR: Failed writing record\n");
             return -1;
         }
-        printf("Posicao fim do loop: %d\n", *bytesFilePosition);
     }
-    printf("Finalizada a escrita de dados.\n");
 
-    printf("Salvando tamanho do arquivo...\n");
     fileInode->bytesFileSize = *bytesFilePosition > fileInode->bytesFileSize ? *bytesFilePosition : fileInode->bytesFileSize;
     DWORD inodeSector = fileRecord->inodeNumber / (SECTOR_SIZE / sizeof(I_NODE));
     DWORD inodeSectorOffset = (fileRecord->inodeNumber % (SECTOR_SIZE / sizeof(I_NODE))) * sizeof(I_NODE);
@@ -685,7 +624,6 @@ FILE2 writeFile(FILE2 handle, char *buffer, int size)
         printf("ERROR: Failed writing record\n");
         return -1;
     }
-    printf("Salvou o tamanho do arquivo.\n");
     return *bytesFilePosition - initialBytesFilePosition;
 }
 
@@ -937,8 +875,6 @@ int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE
 
         simple_ind_sector = *((DWORD *)(buffer + double_ind_sector_offset)) * getSuperblock()->blockSize;
         block_number = (shifted_block_number % simple_indirect_quantity) + direct_quantity; // We add direct_quantity to make sense to discount it in the next indirection
-        printf("****simple_ind_sector %d\n", simple_ind_sector);
-        printf("****block_number %d\n", block_number);
     }
 
     if (block_number >= (int)direct_quantity)
@@ -961,9 +897,7 @@ int readDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYTE
 
     // Read without indirection
     DWORD block_to_read = no_ind_sector;
-    // printf("----------block_to_read %d\n", block_to_read);
     DWORD sector_to_read = block_to_read + sector_number;
-    // printf("----------sector_to_read %d\n", sector_to_read);
 
     if ((read_sector(getDataBlocksFirstSector(getPartition(), getSuperblock()) + sector_to_read, buffer)) != 0)
     {
@@ -995,8 +929,6 @@ int writeDataBlockSector(int block_number, int sector_number, I_NODE *inode, BYT
 
     if (block_number >= (int)direct_quantity + (int)simple_indirect_quantity)
     {
-        printf("------Double Indirection\n");
-        // Read with double indirection
         // Read with double indirection
         DWORD shifted_block_number = block_number - direct_quantity - simple_indirect_quantity;
 
@@ -1120,13 +1052,12 @@ int getPointers(DWORD blockNumber, DWORD *pointers)
 {
     unsigned char buffer[SECTOR_SIZE];
 
-    for (int i = 0; i < getSuperblock()->blockSize; i++)
-    { // For all sector of block
+    for (int i = 0; i < getSuperblock()->blockSize; i++) // For all sector of block
+    {
         int sectorNumber = blockNumber * getSuperblock()->blockSize + i;
         read_sector(sectorNumber, buffer);
 
-        // For all record of sector
-        for (int j = 0; j < PTR_PER_SECTOR; j++)
+        for (int j = 0; j < PTR_PER_SECTOR; j++) // For all record of sector
             pointers[j + i * PTR_PER_SECTOR] = *((DWORD *)(buffer + j * PTR_SIZE));
     }
     return 0;
