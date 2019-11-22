@@ -19,9 +19,10 @@ int identify2(char *name, int size)
 	BYTE identification[] = "Ana Carolina Pagnoncelli - 00287714\nAugusto Zanella Bardini  - 00278083\nRafael Baldasso Audibert - 00287695";
 	memcpy(name, identification, size);
 
-	// TODO: remove
-	mount(0);
-	opendir2();
+	// TODO: remove it on production
+	// mount(0);
+	// opendir2();
+
 	return 0;
 }
 
