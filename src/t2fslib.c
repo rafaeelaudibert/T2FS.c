@@ -17,8 +17,7 @@ MBR *mbr = NULL;
 SUPERBLOCK *superblock = NULL;
 int mounted_partition = -1;
 BOOL rootOpened = FALSE;
-DWORD rootFolderFileIndexValid = 0;
-DWORD rootFolderFileIndexAll = 0;
+DWORD rootFolderFileIndex = 0;
 OPEN_FILE *open_files[] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
 void initialize()
@@ -793,8 +792,7 @@ int readFile(FILE2 handle, char *buffer, int size)
 inline void openRoot()
 {
     rootOpened = TRUE;
-    rootFolderFileIndexValid = 0;
-    rootFolderFileIndexAll = 0;
+    rootFolderFileIndex = 0;
 
     return;
 }
@@ -808,7 +806,7 @@ inline void closeRoot()
 
 inline BOOL finishedEntries(I_NODE *inode)
 {
-    return rootFolderFileIndexValid * sizeof(RECORD) >= inode->bytesFileSize;
+    return rootFolderFileIndex * sizeof(RECORD) >= inode->bytesFileSize;
 }
 
 /*
@@ -1080,18 +1078,12 @@ I_NODE *getInode(DWORD inodeNumber)
 
 inline int getCurrentDirectoryEntryIndex()
 {
-    return rootFolderFileIndexAll;
+    return rootFolderFileIndex;
 }
 
 inline void nextDirectoryEntry()
 {
-    rootFolderFileIndexAll++;
-
-    return;
-}
-inline void nextDirectoryEntryValid()
-{
-    rootFolderFileIndexValid++;
+    rootFolderFileIndex++;
 
     return;
 }

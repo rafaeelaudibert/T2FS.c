@@ -154,7 +154,6 @@ FILE2 create2(char *filename)
 
 	// Remove old file with same name
 	int filesQuantity = dirInode->bytesFileSize / RECORD_SIZE;
-	int bytesUntilFreeSpace = 0;
 	for (int i = 0; i < filesQuantity; i++)
 	{
 		getRecordByNumber(i, &record);
@@ -167,11 +166,6 @@ FILE2 create2(char *filename)
 			};
 			break;
 		}
-		if (record.TypeVal == TYPEVAL_INVALIDO)
-		{
-			break;
-		}
-		bytesUntilFreeSpace = bytesUntilFreeSpace + RECORD_SIZE;
 	}
 
 	// Fetch and set bitmaps info
@@ -196,9 +190,9 @@ FILE2 create2(char *filename)
 	record.inodeNumber = inodeNumber;
 
 	// Compute where we will save the new record
-	DWORD newRecordBlock = bytesUntilFreeSpace / getBlocksize();
-	DWORD newRecordSector = bytesUntilFreeSpace % getBlocksize() / SECTOR_SIZE;
-	DWORD newRecordSectorOffset = bytesUntilFreeSpace % SECTOR_SIZE;
+	DWORD newRecordBlock = dirInode->bytesFileSize / getBlocksize();
+	DWORD newRecordSector = dirInode->bytesFileSize % getBlocksize() / SECTOR_SIZE;
+	DWORD newRecordSectorOffset = dirInode->bytesFileSize % SECTOR_SIZE;
 
 	// Save it
 	BYTE *record_buffer = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
@@ -450,11 +444,10 @@ int delete2(char *filename)
 	// Configure bitmap
 	openBitmap2(getPartition()->firstSector);
 
-	RECORD *record;
+	RECORD *record = NULL;
 	I_NODE *dirInode = getInode(0);
 	RECORD *recordAux = (RECORD *)malloc(sizeof(RECORD));
 	DWORD bytesFileSizeUntilRecord = 0;
-	record = NULL;
 
 	// Search for the record
 	int filesQuantity = dirInode->bytesFileSize / RECORD_SIZE;
@@ -500,23 +493,6 @@ int delete2(char *filename)
 		return -1;
 	}
 
-	//update the DirInode bytesFileSize
-	dirInode->bytesFileSize -= RECORD_SIZE;
-
-	//save the inode of the directory
-	BYTE *buffer_inode = getBuffer(sizeof(BYTE) * SECTOR_SIZE);
-	if (read_sector(getInodesFirstSector(getPartition(), getSuperblock()), buffer_inode) != 0)
-	{
-		printf("ERROR: Failed reading record\n");
-		return -1;
-	}
-	memcpy(buffer_inode, dirInode, sizeof(I_NODE));
-	if (write_sector(getInodesFirstSector(getPartition(), getSuperblock()), buffer_inode) != 0)
-	{
-		printf("ERROR: Failed writing record\n");
-		return -1;
-	}
-
 	//get the inode of the record
 	I_NODE *inode = getInode(record->inodeNumber);
 
@@ -546,7 +522,7 @@ int delete2(char *filename)
 		return 0;
 	}
 
-	//If there is no hardlink, clear the pointers
+	//If there is no link to the file anymore, clear the pointers
 	clearPointers(inode);
 
 	//Clear the inode bitmap
@@ -710,8 +686,6 @@ int readdir2(DIRENT2 *dentry)
 	if (record.TypeVal == TYPEVAL_INVALIDO)
 		return readdir2(dentry);
 
-	nextDirectoryEntryValid();
-
 	// Copy the record information to the `DIRENT2` structure
 	memcpy(dentry->name, record.name, sizeof(BYTE) * 51);
 	dentry->fileType = record.TypeVal;
@@ -745,7 +719,10 @@ int sln2(char *linkname, char *filename)
 	opendir2();
 
 	if (!isPartitionMounted() || !isRootOpened() || strlen(linkname) > 50 || strlen(filename) > 50)
+	{
+		printf("ERROR: Possible invalid filename or not opened partition or root folder.\n");
 		return -1;
+	}
 
 	// Configure bitmap
 	openBitmap2(getPartition()->firstSector);
@@ -770,12 +747,12 @@ int sln2(char *linkname, char *filename)
 	int blockNum = searchBitmap2(BITMAP_DADOS, 0);
 	if (inodeNumber == -1)
 	{
-		printf("ERROR: ERROR: There is no space left to create a new inode.\n");
+		printf("ERROR: There is no space left to create a new inode.\n");
 		return -1;
 	}
 	if (blockNum == -1)
 	{
-		printf("ERROR: ERROR: There is no space left to allocate a new block.\n");
+		printf("ERROR: There is no space left to allocate a new block.\n");
 		return -1;
 	}
 	setBitmap2(BITMAP_INODE, inodeNumber, 1);
@@ -1019,14 +996,6 @@ int sln2(char *linkname, char *filename)
 	I_NODE *fileInode = getInode(inodeNumber);
 	DWORD fileBlock = fileInode->dataPtr[0];
 
-	//TODO REMOVE--------------------------------------------------------
-	DWORD fileSize = fileInode->bytesFileSize;
-
-	printf("File Inode Number: %d\n", inodeNumber);
-	printf("File Inode dataPtr: %d\n", fileBlock);
-	printf("File Inode bytesFileSize: %d\n", fileSize);
-	//END TODO REMOVE---------------------------------------------------
-
 	//Copia o nome do arquivo para o buffer de escrita
 	BYTE *data_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
 	//TO-DO: Trocar pra memcpy (ou nao)
@@ -1041,15 +1010,6 @@ int sln2(char *linkname, char *filename)
 		printf("ERROR: Failed writing record\n");
 		return -1;
 	}
-
-	//TODO REMOVE--------------------------------------------------------
-	data_buffer = getZeroedBuffer(sizeof(BYTE) * SECTOR_SIZE);
-	if (readDataBlockSector(0, 0, fileInode, (BYTE *)data_buffer) != 0)
-	{
-		return -1;
-	}
-	printf("Reading memory of link's inode: %s\n", data_buffer);
-	//END TODO REMOVE---------------------------------------------------
 
 	// Free dynamically allocated memory
 	free(record_buffer);

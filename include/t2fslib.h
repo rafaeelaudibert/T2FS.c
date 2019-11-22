@@ -147,9 +147,6 @@ int getCurrentDirectoryEntryIndex();
 // Increments the current `directoryEntryIndex`
 void nextDirectoryEntry();
 
-//Increments the current `directoryEntryValidIndex`
-void nextDirectoryEntryValid();
-
 /*
 
     GENERIC FUNCTIONS
