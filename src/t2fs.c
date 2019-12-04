@@ -114,7 +114,7 @@ FILE2 create2(char *filename)
 
 	initialize();
 
-	if (!isPartitionMounted() || !isRootOpened())
+	if (!isPartitionMounted())
 		return -1;
 
 	if (strlen(filename) > 50)
@@ -210,7 +210,6 @@ FILE2 create2(char *filename)
 	// Need to create a new block for the directory
 	if (dirInode->bytesFileSize % getBlocksize() == 0)
 	{
-		printf("DEBUG: Will allocate new block for dir entries.\n");
 		dirInode->blocksFileSize++;
 
 		int newBlock = searchBitmap2(BITMAP_DADOS, 0);
@@ -413,7 +412,7 @@ int delete2(char *filename)
 {
 	initialize();
 
-	if (!isPartitionMounted() || !isRootOpened())
+	if (!isPartitionMounted())
 		return -1;
 
 	// Configure bitmap
@@ -527,7 +526,7 @@ FILE2 open2(char *filename)
 {
 	initialize();
 
-	if (!isPartitionMounted() || !isRootOpened())
+	if (!isPartitionMounted())
 		return -1;
 
 	if (countOpenedFiles() == MAX_OPEN_FILES)
@@ -578,7 +577,7 @@ Função:	Função usada para fechar um arquivo.
 -----------------------------------------------------------------------------*/
 int close2(FILE2 handle)
 {
-	if (!isPartitionMounted() || !isRootOpened())
+	if (!isPartitionMounted())
 		return -1;
 
 	return closeFile(handle);
@@ -592,7 +591,7 @@ int read2(FILE2 handle, char *buffer, int size)
 {
 	initialize();
 
-	if (!isPartitionMounted() || !isRootOpened())
+	if (!isPartitionMounted())
 		return -1;
 
 	int bytesRead = readFile(handle, buffer, size);
@@ -607,7 +606,7 @@ int write2(FILE2 handle, char *buffer, int size)
 {
 	initialize();
 
-	if (!isPartitionMounted() || !isRootOpened())
+	if (!isPartitionMounted())
 		return -1;
 
 	int bytesWritten = writeFile(handle, buffer, size);
@@ -690,7 +689,7 @@ int sln2(char *linkname, char *filename)
 {
 	initialize();
 
-	if (!isPartitionMounted() || !isRootOpened())
+	if (!isPartitionMounted())
 		return -1;
 
 	if (strlen(linkname) > 50 || strlen(filename) > 50)
@@ -1003,7 +1002,7 @@ int hln2(char *linkname, char *filename)
 
 	opendir2();
 
-	if (!isPartitionMounted() || !isRootOpened())
+	if (!isPartitionMounted())
 		return -1;
 
 	if (strlen(linkname) > 50 || strlen(filename) > 50)
